@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 
 interface Job {
   id: string
@@ -86,15 +87,10 @@ export default function NewCandidatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link
-            href="/candidates"
-            className="text-indigo-600 hover:text-indigo-500 mb-4 inline-block"
-          >
-            ← Back to Candidates
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900">Add New Candidate</h1>
           <p className="text-gray-600">Add a new candidate to the recruitment pipeline</p>
         </div>
@@ -362,6 +358,7 @@ export default function NewCandidatePage() {
           </form>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }

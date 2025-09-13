@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 import { Calendar, Users, Briefcase, TrendingUp, Plus, LogOut } from 'lucide-react'
 
 interface Job {
@@ -109,34 +110,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">HR Recruitment Dashboard</h1>
-              <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/jobs/new"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Job
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900 flex items-center"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </button>
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">TalentFlow Dashboard</h1>
+                <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-gray-900 flex items-center"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Stats Cards */}
@@ -352,6 +347,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </Layout>
   )
 }

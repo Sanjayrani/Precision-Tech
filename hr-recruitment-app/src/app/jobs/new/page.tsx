@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 
 export default function NewJobPage() {
   const [formData, setFormData] = useState({
@@ -56,15 +57,10 @@ export default function NewJobPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link
-            href="/jobs"
-            className="text-indigo-600 hover:text-indigo-500 mb-4 inline-block"
-          >
-            ← Back to Jobs
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900">Post New Job</h1>
           <p className="text-gray-600">Create a new job posting to attract candidates</p>
         </div>
@@ -241,6 +237,7 @@ export default function NewJobPage() {
           </form>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }

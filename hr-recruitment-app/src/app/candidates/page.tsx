@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 import { Search, Plus, Mail, Phone, Calendar, MapPin, Star } from 'lucide-react'
 
 interface Candidate {
@@ -100,33 +101,28 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Candidate Management</h1>
-              <p className="text-gray-600">Track and manage all your candidates</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back to Dashboard
-              </Link>
-              <Link
-                href="/candidates/new"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Candidate
-              </Link>
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Candidate Management</h1>
+                <p className="text-gray-600">Track and manage all your candidates</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/candidates/new"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Candidate
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
@@ -307,6 +303,7 @@ export default function CandidatesPage() {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }
