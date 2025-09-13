@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("recruiter")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  jobs      Job[]
+  
+  @@map("users")
+}
+
+model Job {
+  id                String   @id @default(cuid())
+  title             String
+  mode              String   // remote, hybrid, onsite
+  description       String
+  location          String
+  recruiterName     String
+  recruiterDetails  String?
+  recruiterDesignation String
+  companyName       String
+  companyDescription String?
+  postedDate        DateTime @default(now())
+  updatedDate       DateTime @updatedAt
+  isActive          Boolean  @default(true)
+  
+  // Relations
+  recruiterId       String
+  recruiter         User       @relation(fields: [recruiterId], references: [id])
+  candidates        Candidate[]
+  
+  @@map("jobs")
+}
+
+model Candidate {
+  id                    String    @id @default(cuid())
+  candidateName         String
+  email                 String    @unique
+  phoneNumber           String?
+  linkedinUrl           String?
+  skills                String    // JSON string array
+  experience            String?
+  projects              String?   // JSON string
+  education             String?
+  certificates          String?   // JSON string
+  endorsements          String?   // JSON string
+  currentJobTitle       String?
+  currentEmployer       String?
+  openToWork            Boolean   @default(true)
+  linkedinInMailSent    Boolean   @default(false)
+  emailSent             Boolean   @default(false)
+  candidateLocation     String?
+  score                 Int?      @default(0)
+  scoreDescription      String?
+  interviewLink         String?
+  interviewDate         DateTime?
+  lastContactedDate     DateTime?
+  candidateHrConversation String? // JSON string
+  followUpCount         Int       @default(0)
+  status                String    @default("new") // new, contacted, interviewed, selected, rejected
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  jobId                 String
+  job                   Job       @relation(fields: [jobId], references: [id])
+  
+  @@map("candidates")
+}
