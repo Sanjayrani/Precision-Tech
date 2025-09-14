@@ -1,0 +1,128 @@
+import { NextResponse } from "next/server"
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { 
+      job_title, 
+      job_description, 
+      job_location, 
+      company_name, 
+      company_description, 
+      job_mode, 
+      recruiter_name, 
+      recruiter_email, 
+      recruiter_designation 
+    } = body
+
+    const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
+    const agentflow_id = process.env.NEXT_PUBLIC_WEXA_CREATE_A_JOB
+    const apiKey = process.env.NEXT_PUBLIC_SECRET_ID
+    const executed_by = process.env.NEXT_PUBLIC_EXECUTED_BY_ID
+
+    console.log("=== JOB CREATION API CALLED ===")
+    console.log("Triggering WEXA job creation process flow...")
+    console.log("Project ID:", projectId)
+    console.log("Agent Flow ID:", agentflow_id)
+    console.log("Job Title:", job_title)
+    console.log("Company Name:", company_name)
+    console.log("Job Location:", job_location)
+    console.log("Request body received:", body)
+
+    // Check if required parameters are set
+    if (!projectId || !agentflow_id || !apiKey) {
+      throw new Error("Missing required parameters")
+    }
+
+    // Validate required fields
+    if (!job_title || !job_description || !job_location || !company_name || !job_mode || !recruiter_name || !recruiter_email || !recruiter_designation) {
+      throw new Error("Missing required job fields: job_title, job_description, job_location, company_name, job_mode, recruiter_name, recruiter_email, and recruiter_designation are required")
+    }
+
+    const url = `https://api.wexa.ai/execute_flow?projectID=${projectId}`
+    const requestBody = {
+      agentflow_id: agentflow_id,
+      executed_by: executed_by,
+      goal: `Create new job: ${job_title} at ${company_name} in ${job_location}`,
+      input_variables: {
+        job_title: job_title,
+        job_description: job_description,
+        job_location: job_location,
+        company_name: company_name,
+        company_description: company_description || "",
+        job_mode: job_mode,
+        recruiter_name: recruiter_name,
+        recruiter_email: recruiter_email,
+        recruiter_designation: recruiter_designation,
+        action: "create_job",
+        timestamp: new Date().toISOString(),
+        created_by: "system"
+      },
+      projectID: projectId
+    }
+
+    console.log("=== MAKING WEXA API CALL ===")
+    console.log("URL:", url)
+    console.log("Request body:", JSON.stringify(requestBody, null, 2))
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    console.log("=== WEXA API RESPONSE ===")
+    console.log("Response status:", response.status)
+    console.log("Response ok:", response.ok)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("WEXA API error response:", errorText)
+      throw new Error(`WEXA API error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+
+    let data = {}
+    try {
+      data = await response.json()
+      console.log("WEXA API response data:", JSON.stringify(data, null, 2))
+    } catch (jsonError) {
+      console.log("Response is not JSON, treating as success")
+      data = { success: true }
+    }
+
+    console.log("=== JOB CREATION SUCCESS ===")
+    console.log("Returning success response")
+
+    return NextResponse.json({
+      success: true,
+      data: data,
+      message: "Job creation process flow triggered successfully",
+      job: {
+        job_title,
+        job_description,
+        job_location,
+        company_name,
+        company_description: company_description || "",
+        job_mode,
+        recruiter_name,
+        recruiter_email,
+        recruiter_designation,
+        postedDate: new Date().toISOString(),
+        isActive: true
+      }
+    })
+  } catch (error) {
+    console.error("Error triggering WEXA job creation:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to trigger job creation",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    )
+  }
+}
