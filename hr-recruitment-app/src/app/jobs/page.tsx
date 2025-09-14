@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
+import JobDetailsDialog from '@/components/JobDetailsDialog'
 import { Search, Plus, MapPin, Calendar, Users } from 'lucide-react'
 
 interface Job {
@@ -12,9 +13,10 @@ interface Job {
   description: string
   location: string
   recruiterName: string
+  recruiterEmail: string
   recruiterDesignation: string
   companyName: string
-  companyDescription: string | null
+  companyDescription: string
   postedDate: string
   updatedDate: string
   isActive: boolean
@@ -29,24 +31,21 @@ export default function JobsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchJobs()
-  }, [page, search])
+  }, [])
 
   const fetchJobs = async () => {
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        ...(search && { search }),
-      })
-
-      const response = await fetch(`/api/jobs?${params}`)
+      setLoading(true)
+      const response = await fetch(`/api/job-jobstable`)
       if (response.ok) {
         const data = await response.json()
-        setJobs(data.jobs)
-        setTotalPages(data.pagination.totalPages)
+        setJobs(data.jobs || [])
+        setTotalPages(Math.ceil((data.totalCount || 0) / 10))
       }
     } catch (error) {
       console.error('Error fetching jobs:', error)
@@ -55,10 +54,38 @@ export default function JobsPage() {
     }
   }
 
+  // Filter jobs based on search term
+  const filteredJobs = jobs.filter(job => {
+    if (!search) return true
+    const searchLower = search.toLowerCase()
+    return (
+      job.title.toLowerCase().includes(searchLower) ||
+      job.companyName.toLowerCase().includes(searchLower) ||
+      job.location.toLowerCase().includes(searchLower) ||
+      job.description.toLowerCase().includes(searchLower)
+    )
+  })
+
+  // Paginate filtered jobs
+  const jobsPerPage = 10
+  const startIndex = (page - 1) * jobsPerPage
+  const endIndex = startIndex + jobsPerPage
+  const paginatedJobs = filteredJobs.slice(startIndex, endIndex)
+  const totalFilteredPages = Math.ceil(filteredJobs.length / jobsPerPage)
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
-    fetchJobs()
+  }
+
+  const handleJobClick = (job: Job) => {
+    setSelectedJob(job)
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setSelectedJob(null)
   }
 
   const formatDate = (dateString: string) => {
@@ -138,9 +165,12 @@ export default function JobsPage() {
           <>
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <ul className="divide-y divide-gray-200">
-                {jobs.map((job) => (
+                {paginatedJobs.map((job) => (
                   <li key={job.id}>
-                    <Link href={`/jobs/${job.id}`} className="block hover:bg-gray-50">
+                    <button 
+                      onClick={() => handleJobClick(job)}
+                      className="block w-full text-left hover:bg-gray-50 transition-colors"
+                    >
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -185,14 +215,14 @@ export default function JobsPage() {
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalFilteredPages > 1 && (
               <div className="mt-6 flex justify-center">
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   <button
@@ -203,7 +233,7 @@ export default function JobsPage() {
                     Previous
                   </button>
                   
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  {Array.from({ length: totalFilteredPages }, (_, i) => i + 1).map((pageNum) => (
                     <button
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
@@ -218,8 +248,8 @@ export default function JobsPage() {
                   ))}
                   
                   <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    disabled={page === totalPages}
+                    onClick={() => setPage(Math.min(totalFilteredPages, page + 1))}
+                    disabled={page === totalFilteredPages}
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Next
@@ -228,7 +258,7 @@ export default function JobsPage() {
               </div>
             )}
 
-            {jobs.length === 0 && (
+            {paginatedJobs.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-500">
                   {search ? 'No jobs found matching your search.' : 'No jobs posted yet.'}
@@ -246,6 +276,13 @@ export default function JobsPage() {
         )}
       </div>
       </div>
+
+      {/* Job Details Dialog */}
+      <JobDetailsDialog
+        job={selectedJob}
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+      />
     </Layout>
   )
 }

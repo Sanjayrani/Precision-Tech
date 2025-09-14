@@ -29,7 +29,7 @@ export default function Sidebar() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/login')
+      router.push('/dashboard')
     } catch (error) {
       console.error('Logout error:', error)
     }

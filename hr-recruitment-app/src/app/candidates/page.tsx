@@ -1,26 +1,52 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
+import CandidateDetailsDialog from '@/components/CandidateDetailsDialog'
 import { Search, Plus, Mail, Phone, Calendar, MapPin, Star } from 'lucide-react'
 
 interface Candidate {
   id: string
   candidateName: string
   email: string
-  phoneNumber: string | null
-  linkedinUrl: string | null
+  phoneNumber: string
+  linkedinUrl: string
   skills: string
-  experience: string | null
-  currentJobTitle: string | null
-  currentEmployer: string | null
-  candidateLocation: string | null
-  score: number | null
+  experience: string
+  certifications: string
+  projects: string
+  miscellaneousInformation: string
+  candidateScore: number
+  scoreDescription: string
+  jobsMapped: string
+  currentJobTitle: string
+  currentEmployer: string
+  openToWork: boolean
+  education: string
+  endorsements: string
+  recommendationsReceived: number
+  linkedinInmailMessageStatus: string
+  emailStatus: string
+  linkedinMessages: number
+  emailMessages: number
+  overallMessages: number
+  followUpCount: number
+  candidateLocation: string
+  lastContactedDate: string
+  providerId: string
+  linkedinMessageRead: boolean
+  jobId: string
+  replyStatus: string
+  emailMessageRead: boolean
+  linkedinMessage: string
+  meetingLink: string
+  meetingDate: string
+  eventId: string
+  emailProviderId: string
+  subject: string
   status: string
   interviewDate: string | null
-  lastContactedDate: string | null
-  followUpCount: number
   createdAt: string
   job: {
     id: string
@@ -36,37 +62,64 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const fetchCandidates = useCallback(async () => {
+  useEffect(() => {
+    fetchCandidates()
+  }, [])
+
+  const fetchCandidates = async () => {
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        ...(search && { search }),
-        ...(statusFilter && { status: statusFilter }),
-      })
-
-      const response = await fetch(`/api/candidates?${params}`)
+      setLoading(true)
+      const response = await fetch(`/api/candidates-candidatestable`)
       if (response.ok) {
         const data = await response.json()
-        setCandidates(data.candidates)
-        setTotalPages(data.pagination.totalPages)
+        setCandidates(data.candidates || [])
+        setTotalPages(Math.ceil((data.totalCount || 0) / 10))
       }
     } catch (error) {
       console.error('Error fetching candidates:', error)
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter])
+  }
 
-  useEffect(() => {
-    fetchCandidates()
-  }, [fetchCandidates])
+  // Filter candidates based on search term and status
+  const filteredCandidates = candidates.filter(candidate => {
+    const matchesSearch = !search || (
+      candidate.candidateName.toLowerCase().includes(search.toLowerCase()) ||
+      candidate.email.toLowerCase().includes(search.toLowerCase()) ||
+      candidate.skills.toLowerCase().includes(search.toLowerCase()) ||
+      candidate.currentJobTitle?.toLowerCase().includes(search.toLowerCase()) ||
+      candidate.currentEmployer?.toLowerCase().includes(search.toLowerCase())
+    )
+    
+    const matchesStatus = !statusFilter || candidate.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
+  // Paginate filtered candidates
+  const candidatesPerPage = 10
+  const startIndex = (page - 1) * candidatesPerPage
+  const endIndex = startIndex + candidatesPerPage
+  const paginatedCandidates = filteredCandidates.slice(startIndex, endIndex)
+  const totalFilteredPages = Math.ceil(filteredCandidates.length / candidatesPerPage)
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
-    fetchCandidates()
+  }
+
+  const handleCandidateClick = (candidate: Candidate) => {
+    setSelectedCandidate(candidate)
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setSelectedCandidate(null)
   }
 
   const formatDate = (dateString: string | null) => {
@@ -93,8 +146,7 @@ export default function CandidatesPage() {
     }
   }
 
-  const getScoreColor = (score: number | null) => {
-    if (!score) return 'text-gray-400'
+  const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-green-600'
     if (score >= 6) return 'text-yellow-600'
     return 'text-red-600'
@@ -168,9 +220,12 @@ export default function CandidatesPage() {
           <>
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <ul className="divide-y divide-gray-200">
-                {candidates.map((candidate) => (
+                {paginatedCandidates.map((candidate) => (
                   <li key={candidate.id}>
-                    <Link href={`/candidates/${candidate.id}`} className="block hover:bg-gray-50">
+                    <button 
+                      onClick={() => handleCandidateClick(candidate)}
+                      className="block w-full text-left hover:bg-gray-50 transition-colors"
+                    >
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -179,12 +234,10 @@ export default function CandidatesPage() {
                                 {candidate.candidateName}
                               </h3>
                               <div className="ml-2 flex items-center space-x-2">
-                                {candidate.score && (
-                                  <div className={`flex items-center ${getScoreColor(candidate.score)}`}>
-                                    <Star className="w-4 h-4 mr-1" />
-                                    <span className="text-sm font-medium">{candidate.score}/10</span>
-                                  </div>
-                                )}
+                                <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
+                                  <Star className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">{candidate.candidateScore}/10</span>
+                                </div>
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
                                   {candidate.status}
                                 </span>
@@ -229,7 +282,7 @@ export default function CandidatesPage() {
                                   </p>
                                 )}
                                 <p className="text-sm text-gray-500">
-                                  Skills: {candidate.skills.substring(0, 100)}...
+                                  Skills: {typeof candidate.skills === 'string' ? candidate.skills.substring(0, 100) : String(candidate.skills || '').substring(0, 100)}...
                                 </p>
                               </div>
                               <div className="text-right text-sm text-gray-500">
@@ -243,14 +296,14 @@ export default function CandidatesPage() {
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalFilteredPages > 1 && (
               <div className="mt-6 flex justify-center">
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   <button
@@ -261,7 +314,7 @@ export default function CandidatesPage() {
                     Previous
                   </button>
                   
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  {Array.from({ length: totalFilteredPages }, (_, i) => i + 1).map((pageNum) => (
                     <button
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
@@ -276,8 +329,8 @@ export default function CandidatesPage() {
                   ))}
                   
                   <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    disabled={page === totalPages}
+                    onClick={() => setPage(Math.min(totalFilteredPages, page + 1))}
+                    disabled={page === totalFilteredPages}
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Next
@@ -286,7 +339,7 @@ export default function CandidatesPage() {
               </div>
             )}
 
-            {candidates.length === 0 && (
+            {paginatedCandidates.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-500">
                   {search || statusFilter ? 'No candidates found matching your criteria.' : 'No candidates added yet.'}
@@ -304,6 +357,13 @@ export default function CandidatesPage() {
         )}
       </div>
       </div>
+
+      {/* Candidate Details Dialog */}
+      <CandidateDetailsDialog
+        candidate={selectedCandidate}
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+      />
     </Layout>
   )
 }
