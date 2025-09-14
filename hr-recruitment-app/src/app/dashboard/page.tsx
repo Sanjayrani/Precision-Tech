@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Users, Briefcase, TrendingUp, Plus, LogOut } from 'lucide-react'
+import Layout from '@/components/Layout'
+import { Calendar, Users, Briefcase, TrendingUp, Plus } from 'lucide-react'
 
 interface Job {
   id: string
@@ -48,7 +48,6 @@ export default function Dashboard() {
     rejectedCandidates: 0
   })
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
     fetchDashboardData()
@@ -83,14 +82,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -109,112 +100,107 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">HR Recruitment Dashboard</h1>
-              <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/jobs/new"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Job
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900 flex items-center"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </button>
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">TalentFlow Dashboard</h1>
+                <p className="text-gray-600 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-8 px-6 lg:px-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Briefcase className="h-6 w-6 text-gray-400" />
+                  <div className="p-3 bg-indigo-100 rounded-lg">
+                    <Briefcase className="h-6 w-6 text-indigo-600" />
+                  </div>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Active Jobs</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalJobs}</dd>
+                    <dd className="text-2xl font-bold text-gray-900">{stats.totalJobs}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-gray-400" />
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Candidates</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalCandidates}</dd>
+                    <dd className="text-2xl font-bold text-gray-900">{stats.totalCandidates}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Calendar className="h-6 w-6 text-blue-400" />
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <Calendar className="h-6 w-6 text-purple-600" />
+                  </div>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Today's Interviews</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.todayInterviews}</dd>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Today&apos;s Interviews</dt>
+                    <dd className="text-2xl font-bold text-gray-900">{stats.todayInterviews}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-green-400" />
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-green-600" />
+                  </div>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Selected</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.selectedCandidates}</dd>
+                    <dd className="text-2xl font-bold text-gray-900">{stats.selectedCandidates}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+            <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-red-400" />
+                  <div className="p-3 bg-red-100 rounded-lg">
+                    <Users className="h-6 w-6 text-red-600" />
+                  </div>
                 </div>
-                <div className="ml-5 w-0 flex-1">
+                <div className="ml-4 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Rejected</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.rejectedCandidates}</dd>
+                    <dd className="text-2xl font-bold text-gray-900">{stats.rejectedCandidates}</dd>
                   </dl>
                 </div>
               </div>
@@ -224,31 +210,31 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Active Jobs */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">Active Jobs</h3>
+          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
+            <div className="px-6 py-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Active Jobs</h3>
                 <Link
                   href="/jobs"
-                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
-                  View all
+                  View all →
                 </Link>
               </div>
               <div className="space-y-4">
                 {jobs.length > 0 ? (
                   jobs.map((job) => (
-                    <div key={job.id} className="border-l-4 border-indigo-400 pl-4">
+                    <div key={job.id} className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="text-sm font-medium text-gray-900">{job.title}</h4>
-                          <p className="text-sm text-gray-500">{job.companyName}</p>
-                          <p className="text-xs text-gray-400">
+                          <h4 className="text-base font-semibold text-gray-900">{job.title}</h4>
+                          <p className="text-sm text-gray-600 font-medium">{job.companyName}</p>
+                          <p className="text-xs text-gray-500 mt-1">
                             {job.location} • {job.mode} • Posted {formatDate(job.postedDate)}
                           </p>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-lg font-bold text-indigo-600">
                             {job._count?.candidates || 0}
                           </span>
                           <p className="text-xs text-gray-500">candidates</p>
@@ -257,33 +243,36 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">No active jobs found</p>
+                  <div className="text-center py-8">
+                    <Briefcase className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="text-gray-500 mt-2">No active jobs found</p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Today's Interviews */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">Today's Interviews</h3>
+          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
+            <div className="px-6 py-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Today&apos;s Interviews</h3>
                 <Link
                   href="/candidates"
-                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
-                  View all candidates
+                  View all candidates →
                 </Link>
               </div>
               <div className="space-y-4">
                 {todayInterviews.length > 0 ? (
                   todayInterviews.map((candidate) => (
-                    <div key={candidate.id} className="border-l-4 border-blue-400 pl-4">
+                    <div key={candidate.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="text-sm font-medium text-gray-900">{candidate.candidateName}</h4>
-                          <p className="text-sm text-gray-500">{candidate.job.title} at {candidate.job.companyName}</p>
-                          <p className="text-xs text-gray-400">{candidate.email}</p>
+                          <h4 className="text-base font-semibold text-gray-900">{candidate.candidateName}</h4>
+                          <p className="text-sm text-gray-600 font-medium">{candidate.job.title} at {candidate.job.companyName}</p>
+                          <p className="text-xs text-gray-500 mt-1">{candidate.email}</p>
                         </div>
                         <div className="text-right">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -300,7 +289,10 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">No interviews scheduled for today</p>
+                  <div className="text-center py-8">
+                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="text-gray-500 mt-2">No interviews scheduled for today</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -308,50 +300,59 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mt-8 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-8 bg-white shadow-lg rounded-xl border border-gray-100">
+          <div className="px-6 py-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <Link
                 href="/jobs/new"
-                className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 hover:bg-indigo-100 transition-colors"
+                className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center">
-                  <Plus className="h-6 w-6 text-indigo-600 mr-3" />
-                  <span className="text-sm font-medium text-indigo-900">Add New Job</span>
+                  <div className="p-2 bg-indigo-100 rounded-lg mr-3">
+                    <Plus className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-indigo-900">Add New Job</span>
                 </div>
               </Link>
               <Link
                 href="/candidates/new"
-                className="bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors"
+                className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center">
-                  <Users className="h-6 w-6 text-green-600 mr-3" />
-                  <span className="text-sm font-medium text-green-900">Add Candidate</span>
+                  <div className="p-2 bg-green-100 rounded-lg mr-3">
+                    <Users className="h-5 w-5 text-green-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-green-900">Add Candidate</span>
                 </div>
               </Link>
               <Link
                 href="/jobs"
-                className="bg-blue-50 border border-blue-200 rounded-lg p-4 hover:bg-blue-100 transition-colors"
+                className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6 hover:from-blue-100 hover:to-cyan-100 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center">
-                  <Briefcase className="h-6 w-6 text-blue-600 mr-3" />
-                  <span className="text-sm font-medium text-blue-900">Manage Jobs</span>
+                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                    <Briefcase className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-900">Manage Jobs</span>
                 </div>
               </Link>
               <Link
                 href="/candidates"
-                className="bg-purple-50 border border-purple-200 rounded-lg p-4 hover:bg-purple-100 transition-colors"
+                className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 hover:from-purple-100 hover:to-pink-100 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <div className="flex items-center">
-                  <Calendar className="h-6 w-6 text-purple-600 mr-3" />
-                  <span className="text-sm font-medium text-purple-900">View Candidates</span>
+                  <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-purple-900">View Candidates</span>
                 </div>
               </Link>
             </div>
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </Layout>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 import { Search, Plus, MapPin, Calendar, Users } from 'lucide-react'
 
 interface Job {
@@ -82,33 +83,28 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Job Management</h1>
-              <p className="text-gray-600">Manage all your job postings and requirements</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back to Dashboard
-              </Link>
-              <Link
-                href="/jobs/new"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Job
-              </Link>
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white shadow">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Job Management</h1>
+                <p className="text-gray-600">Manage all your job postings and requirements</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/jobs/new"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Job
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search */}
@@ -249,6 +245,7 @@ export default function JobsPage() {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }

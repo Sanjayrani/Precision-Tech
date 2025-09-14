@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 
 interface Job {
   id: string
@@ -86,15 +87,10 @@ export default function NewCandidatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link
-            href="/candidates"
-            className="text-indigo-600 hover:text-indigo-500 mb-4 inline-block"
-          >
-            ← Back to Candidates
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900">Add New Candidate</h1>
           <p className="text-gray-600">Add a new candidate to the recruitment pipeline</p>
         </div>
@@ -117,7 +113,7 @@ export default function NewCandidatePage() {
                   name="candidateName"
                   id="candidateName"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., John Doe"
                   value={formData.candidateName}
                   onChange={handleChange}
@@ -133,7 +129,7 @@ export default function NewCandidatePage() {
                   name="email"
                   id="email"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="john.doe@example.com"
                   value={formData.email}
                   onChange={handleChange}
@@ -148,7 +144,7 @@ export default function NewCandidatePage() {
                   type="tel"
                   name="phoneNumber"
                   id="phoneNumber"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="+1 (555) 123-4567"
                   value={formData.phoneNumber}
                   onChange={handleChange}
@@ -163,7 +159,7 @@ export default function NewCandidatePage() {
                   type="url"
                   name="linkedinUrl"
                   id="linkedinUrl"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="https://linkedin.com/in/johndoe"
                   value={formData.linkedinUrl}
                   onChange={handleChange}
@@ -178,7 +174,7 @@ export default function NewCandidatePage() {
                   type="text"
                   name="candidateLocation"
                   id="candidateLocation"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., San Francisco, CA"
                   value={formData.candidateLocation}
                   onChange={handleChange}
@@ -193,7 +189,7 @@ export default function NewCandidatePage() {
                   name="jobId"
                   id="jobId"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   value={formData.jobId}
                   onChange={handleChange}
                 >
@@ -215,7 +211,7 @@ export default function NewCandidatePage() {
                   id="skills"
                   rows={3}
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., JavaScript, React, Node.js, Python, AWS..."
                   value={formData.skills}
                   onChange={handleChange}
@@ -230,7 +226,7 @@ export default function NewCandidatePage() {
                   type="text"
                   name="currentJobTitle"
                   id="currentJobTitle"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., Senior Software Engineer"
                   value={formData.currentJobTitle}
                   onChange={handleChange}
@@ -245,7 +241,7 @@ export default function NewCandidatePage() {
                   type="text"
                   name="currentEmployer"
                   id="currentEmployer"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., Tech Corp Inc."
                   value={formData.currentEmployer}
                   onChange={handleChange}
@@ -260,7 +256,7 @@ export default function NewCandidatePage() {
                   name="experience"
                   id="experience"
                   rows={4}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Describe work experience, years of experience, key achievements..."
                   value={formData.experience}
                   onChange={handleChange}
@@ -275,7 +271,7 @@ export default function NewCandidatePage() {
                   name="education"
                   id="education"
                   rows={3}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Educational background, degrees, institutions..."
                   value={formData.education}
                   onChange={handleChange}
@@ -290,7 +286,7 @@ export default function NewCandidatePage() {
                   name="projects"
                   id="projects"
                   rows={3}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Notable projects, GitHub links, portfolio..."
                   value={formData.projects}
                   onChange={handleChange}
@@ -305,7 +301,7 @@ export default function NewCandidatePage() {
                   name="certificates"
                   id="certificates"
                   rows={2}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Professional certifications..."
                   value={formData.certificates}
                   onChange={handleChange}
@@ -320,7 +316,7 @@ export default function NewCandidatePage() {
                   name="endorsements"
                   id="endorsements"
                   rows={2}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="LinkedIn endorsements, recommendations..."
                   value={formData.endorsements}
                   onChange={handleChange}
@@ -362,6 +358,7 @@ export default function NewCandidatePage() {
           </form>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }

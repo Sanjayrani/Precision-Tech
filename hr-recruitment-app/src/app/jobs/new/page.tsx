@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Layout from '@/components/Layout'
 
 export default function NewJobPage() {
   const [formData, setFormData] = useState({
@@ -56,15 +57,10 @@ export default function NewJobPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout>
+      <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <Link
-            href="/jobs"
-            className="text-indigo-600 hover:text-indigo-500 mb-4 inline-block"
-          >
-            ← Back to Jobs
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900">Post New Job</h1>
           <p className="text-gray-600">Create a new job posting to attract candidates</p>
         </div>
@@ -87,7 +83,7 @@ export default function NewJobPage() {
                   name="title"
                   id="title"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., Senior Software Engineer"
                   value={formData.title}
                   onChange={handleChange}
@@ -102,7 +98,7 @@ export default function NewJobPage() {
                   name="mode"
                   id="mode"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   value={formData.mode}
                   onChange={handleChange}
                 >
@@ -121,7 +117,7 @@ export default function NewJobPage() {
                   name="location"
                   id="location"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., San Francisco, CA"
                   value={formData.location}
                   onChange={handleChange}
@@ -137,7 +133,7 @@ export default function NewJobPage() {
                   id="description"
                   rows={6}
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Describe the role, responsibilities, requirements, and qualifications..."
                   value={formData.description}
                   onChange={handleChange}
@@ -153,7 +149,7 @@ export default function NewJobPage() {
                   name="companyName"
                   id="companyName"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., Tech Corp"
                   value={formData.companyName}
                   onChange={handleChange}
@@ -169,7 +165,7 @@ export default function NewJobPage() {
                   name="recruiterName"
                   id="recruiterName"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., John Doe"
                   value={formData.recruiterName}
                   onChange={handleChange}
@@ -185,7 +181,7 @@ export default function NewJobPage() {
                   name="recruiterDesignation"
                   id="recruiterDesignation"
                   required
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="e.g., Senior HR Manager"
                   value={formData.recruiterDesignation}
                   onChange={handleChange}
@@ -200,7 +196,7 @@ export default function NewJobPage() {
                   type="text"
                   name="recruiterDetails"
                   id="recruiterDetails"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Contact information, LinkedIn profile, etc."
                   value={formData.recruiterDetails}
                   onChange={handleChange}
@@ -215,7 +211,7 @@ export default function NewJobPage() {
                   name="companyDescription"
                   id="companyDescription"
                   rows={3}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
                   placeholder="Brief description about the company..."
                   value={formData.companyDescription}
                   onChange={handleChange}
@@ -241,6 +237,7 @@ export default function NewJobPage() {
           </form>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   )
 }
