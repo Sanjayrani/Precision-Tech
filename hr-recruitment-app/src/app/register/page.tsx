@@ -36,7 +36,7 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (response.ok) {
-        router.push('/login')
+        router.push('/dashboard')
       } else {
         setError(data.error || 'Registration failed')
       }
@@ -164,9 +164,9 @@ export default function RegisterPage() {
 
             <div className="text-center pt-4 border-t border-gray-100">
               <span className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
-                  Sign in here
+                Ready to get started?{' '}
+                <Link href="/dashboard" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
+                  Go to Dashboard
                 </Link>
               </span>
             </div>
