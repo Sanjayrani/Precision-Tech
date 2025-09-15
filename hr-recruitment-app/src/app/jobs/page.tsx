@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import JobDetailsDialog from '@/components/JobDetailsDialog'
+import CreateJobDialog from '@/components/CreateJobDialog'
 import { Search, Plus, MapPin, Calendar, Users } from 'lucide-react'
 
 interface Job {
@@ -33,6 +34,7 @@ export default function JobsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchJobs()
@@ -88,6 +90,19 @@ export default function JobsPage() {
     setSelectedJob(null)
   }
 
+  const handleOpenCreateDialog = () => {
+    setIsCreateDialogOpen(true)
+  }
+
+  const handleCloseCreateDialog = () => {
+    setIsCreateDialogOpen(false)
+  }
+
+  const handleJobCreated = () => {
+    // Refresh the jobs list after creating a new job
+    fetchJobs()
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -121,13 +136,13 @@ export default function JobsPage() {
                 <p className="text-gray-600">Manage all your job postings and requirements</p>
               </div>
               <div className="flex items-center space-x-4">
-                <Link
-                  href="/jobs/new"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+                <button
+                  onClick={handleOpenCreateDialog}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center transition-colors"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  New Job
-                </Link>
+                  Create Job
+                </button>
               </div>
             </div>
           </div>
@@ -263,13 +278,13 @@ export default function JobsPage() {
                 <div className="text-gray-500">
                   {search ? 'No jobs found matching your search.' : 'No jobs posted yet.'}
                 </div>
-                <Link
-                  href="/jobs/new"
-                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                <button
+                  onClick={handleOpenCreateDialog}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Post Your First Job
-                </Link>
+                  Create Your First Job
+                </button>
               </div>
             )}
           </>
@@ -282,6 +297,13 @@ export default function JobsPage() {
         job={selectedJob}
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}
+      />
+
+      {/* Create Job Dialog */}
+      <CreateJobDialog
+        isOpen={isCreateDialogOpen}
+        onClose={handleCloseCreateDialog}
+        onJobCreated={handleJobCreated}
       />
     </Layout>
   )
