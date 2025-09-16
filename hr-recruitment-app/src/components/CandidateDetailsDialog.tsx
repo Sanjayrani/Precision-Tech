@@ -131,7 +131,7 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                     </span>
                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getScoreColor(candidate.candidateScore)}`}>
                       <Star className="h-4 w-4 mr-1" />
-                      {candidate.candidateScore}/10
+                      {candidate.candidateScore}/100
                     </div>
                     {candidate.openToWork && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
