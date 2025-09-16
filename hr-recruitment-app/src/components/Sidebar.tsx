@@ -8,7 +8,8 @@ import {
   Briefcase,
   Search,
   BarChart3,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react'
 
 const navigation = [
