@@ -16,7 +16,7 @@ const navigation = [
   { name: 'Jobs', href: '/jobs', icon: Briefcase },
   { name: 'Candidates', href: '/candidates', icon: Users },
   { name: 'Source Candidates', href: '/candidates/source', icon: Search },
-  // { name: 'Analytics', href: '/analytics', icon: BarChart3 }, // Hidden for now, can be enabled later
+  { name: 'Communication', href: '/communications', icon: MessageSquare },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
