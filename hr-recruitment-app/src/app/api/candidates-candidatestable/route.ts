@@ -59,7 +59,30 @@ export async function GET() {
       emailStatus: record.email_status || record.Email_Status || record.emailCommunicationStatus || "",
       linkedinMessages: record.linkedin_messages || record.LinkedIn_Messages || record.linkedinMessageCount || 0,
       emailMessages: record.email_messages || record.Email_Messages || record.emailMessageCount || 0,
-      overallMessages: record.overall_messages || record.Overall_Messages || record.totalMessages || 0,
+      // Handle overall_messages based on its type - using only real data
+      overallMessages: (() => {
+        // If it's already an array of message objects, use it directly
+        if (Array.isArray(record.overall_messages) && record.overall_messages.length > 0) {
+          return record.overall_messages;
+        }
+        
+        // If it's an array of message objects in a different field, use that
+        if (record.Overall_Messages && Array.isArray(record.Overall_Messages) && record.Overall_Messages.length > 0) {
+          return record.Overall_Messages;
+        }
+        
+        // If it's a single string, return it as is
+        if (typeof record.overall_messages === 'string') {
+          return record.overall_messages;
+        }
+        
+        if (typeof record.Overall_Messages === 'string') {
+          return record.Overall_Messages;
+        }
+        
+        // Return empty array if no real data is available
+        return [];
+      })(),
       followUpCount: record.follow_up_count || record.Follow_Up_Count || record.followUpAttempts || 0,
       candidateLocation: record.candidate_location || record.Candidate_Location || record.location || "",
       lastContactedDate: record.last_contacted_date || record.Last_Contacted_Date || record.lastContact || new Date().toISOString(),
