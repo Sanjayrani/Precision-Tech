@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { htmlToPlainText } from "@/lib/formatHtml"
 
 export async function GET() {
   try {
@@ -35,6 +36,7 @@ export async function GET() {
     console.log("Candidates records count:", data.records?.length || 0)
     
     // Map the records to match the candidates schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mappedCandidates = data.records?.map((record: any, index: number) => ({
       id: record.candidate_id || record._id || `candidate-${index + 1}`,
       candidateName: record.candidate_name || record.Candidate_Name || record.name || `Candidate ${index + 1}`,
@@ -59,7 +61,39 @@ export async function GET() {
       emailStatus: record.email_status || record.Email_Status || record.emailCommunicationStatus || "",
       linkedinMessages: record.linkedin_messages || record.LinkedIn_Messages || record.linkedinMessageCount || 0,
       emailMessages: record.email_messages || record.Email_Messages || record.emailMessageCount || 0,
-      overallMessages: record.overall_messages || record.Overall_Messages || record.totalMessages || 0,
+      // Handle overall_messages based on its type - using only real data
+      overallMessages: (() => {
+        // Prefer explicit overall_messages, fallback to Overall_Messages
+        const raw = (record.overall_messages ?? record.Overall_Messages) as unknown
+
+        // Array case: map each entry; convert strings from HTML to plain text
+        if (Array.isArray(raw)) {
+          return raw.map((item: unknown) => {
+            if (typeof item === 'string') return htmlToPlainText(item)
+            if (item && typeof item === 'object') {
+              const obj = { ...(item as Record<string, unknown>) }
+              // Try to clean common content keys if present
+              const keysToClean = ['message', 'content', 'text', 'body', 'value'] as const
+              for (const key of keysToClean) {
+                const val = obj[key]
+                if (typeof val === 'string') {
+                  obj[key] = htmlToPlainText(val)
+                }
+              }
+              return obj
+            }
+            return item
+          })
+        }
+
+        // String case: convert HTML into plain text
+        if (typeof raw === 'string') {
+          return htmlToPlainText(raw)
+        }
+
+        // Nothing usable
+        return []
+      })(),
       followUpCount: record.follow_up_count || record.Follow_Up_Count || record.followUpAttempts || 0,
       candidateLocation: record.candidate_location || record.Candidate_Location || record.location || "",
       lastContactedDate: record.last_contacted_date || record.Last_Contacted_Date || record.lastContact || new Date().toISOString(),

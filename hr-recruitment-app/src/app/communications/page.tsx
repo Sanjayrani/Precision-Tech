@@ -4,6 +4,15 @@ import { useState, useEffect } from 'react'
 import CommunicationInterface from '@/components/CommunicationInterface'
 import Sidebar from '@/components/Sidebar'
 
+interface OverallMessage {
+  content: string
+  timestamp: string
+  sender: 'Recruiter' | 'Candidate'
+}
+
+// For handling a single string in overallMessages
+type OverallMessages = OverallMessage[] | string
+
 interface Candidate {
   id: string
   candidateName: string
@@ -11,7 +20,7 @@ interface Candidate {
   phoneNumber: string
   currentJobTitle: string
   currentEmployer: string
-  overallMessages: unknown[]
+  overallMessages: OverallMessages
   linkedinMessages: number
   emailMessages: number
   lastContactedDate: string

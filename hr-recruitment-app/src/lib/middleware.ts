@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
 
 export interface AuthUser {
@@ -15,14 +15,20 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       return null
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-    
-    return {
-      userId: decoded.userId,
-      email: decoded.email,
-      name: decoded.name,
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret')
+
+    if (typeof decoded === 'string') {
+      return null
     }
-  } catch (error) {
+
+    const payload = decoded as JwtPayload
+
+    return {
+      userId: String(payload.userId ?? ''),
+      email: String(payload.email ?? ''),
+      name: String(payload.name ?? ''),
+    }
+  } catch {
     return null
   }
 }
