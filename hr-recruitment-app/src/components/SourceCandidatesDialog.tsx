@@ -160,15 +160,6 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
               </div>
             )}
 
-            {/* Tabs */}
-            <div className="flex space-x-1 mb-6">
-              <button className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium">
-                Input
-              </button>
-              <button className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium">
-                Goals
-              </button>
-            </div>
 
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
               {/* Job Title Selection */}

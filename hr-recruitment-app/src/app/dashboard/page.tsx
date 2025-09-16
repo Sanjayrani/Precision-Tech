@@ -3,31 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
+import CreateJobDialog from '@/components/CreateJobDialog'
 import { Calendar, Users, Briefcase, TrendingUp, Plus } from 'lucide-react'
 
-interface Job {
-  id: string
-  title: string
-  companyName: string
-  location: string
-  mode: string
-  postedDate: string
-  _count?: {
-    candidates: number
-  }
-}
-
-interface Candidate {
-  id: string
-  candidateName: string
-  email: string
-  interviewDate: string | null
-  status: string
-  job: {
-    title: string
-    companyName: string
-  }
-}
 
 interface DashboardStats {
   totalJobs: number
@@ -38,8 +16,6 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [todayInterviews, setTodayInterviews] = useState<Candidate[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalJobs: 0,
     totalCandidates: 0,
@@ -48,6 +24,7 @@ export default function Dashboard() {
     rejectedCandidates: 0
   })
   const [loading, setLoading] = useState(true)
+  const [isCreateJobDialogOpen, setIsCreateJobDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -55,25 +32,33 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [jobsRes, interviewsRes, statsRes] = await Promise.all([
-        fetch('/api/jobs?limit=5'),
-        fetch('/api/candidates/today-interviews'),
+      const [dashboardRes, statsRes] = await Promise.all([
+        fetch('/api/dashboard'),
         fetch('/api/dashboard/stats')
       ])
 
-      if (jobsRes.ok) {
-        const jobsData = await jobsRes.json()
-        setJobs(jobsData.jobs || [])
-      }
-
-      if (interviewsRes.ok) {
-        const interviewsData = await interviewsRes.json()
-        setTodayInterviews(interviewsData.candidates || [])
+      if (dashboardRes.ok) {
+        const dashboardData = await dashboardRes.json()
+        console.log('Dashboard data received:', dashboardData)
+        if (dashboardData.success) {
+          setStats(prevStats => ({
+            ...prevStats,
+            totalJobs: dashboardData.data.totalJobs
+          }))
+        }
       }
 
       if (statsRes.ok) {
         const statsData = await statsRes.json()
-        setStats(statsData)
+        if (statsData.success) {
+          setStats(prevStats => ({
+            ...prevStats,
+            totalCandidates: statsData.totalCandidates,
+            todayInterviews: statsData.todayInterviews,
+            selectedCandidates: statsData.selectedCandidates,
+            rejectedCandidates: statsData.rejectedCandidates
+          }))
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -83,12 +68,18 @@ export default function Dashboard() {
   }
 
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+
+  const handleJobCreated = () => {
+    // Refresh dashboard data when a new job is created
+    fetchDashboardData()
+  }
+
+  const handleOpenCreateJobDialog = () => {
+    setIsCreateJobDialogOpen(true)
+  }
+
+  const handleCloseCreateJobDialog = () => {
+    setIsCreateJobDialogOpen(false)
   }
 
   if (loading) {
@@ -127,7 +118,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Active Jobs</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Jobs</dt>
                     <dd className="text-2xl font-bold text-gray-900">{stats.totalJobs}</dd>
                   </dl>
                 </div>
@@ -163,7 +154,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Today&apos;s Interviews</dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Interviews Scheduled</dt>
                     <dd className="text-2xl font-bold text-gray-900">{stats.todayInterviews}</dd>
                   </dl>
                 </div>
@@ -208,105 +199,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Active Jobs */}
-          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
-            <div className="px-6 py-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Active Jobs</h3>
-                <Link
-                  href="/jobs"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-                >
-                  View all →
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {jobs.length > 0 ? (
-                  jobs.map((job) => (
-                    <div key={job.id} className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-base font-semibold text-gray-900">{job.title}</h4>
-                          <p className="text-sm text-gray-600 font-medium">{job.companyName}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {job.location} • {job.mode} • Posted {formatDate(job.postedDate)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-lg font-bold text-indigo-600">
-                            {job._count?.candidates || 0}
-                          </span>
-                          <p className="text-xs text-gray-500">candidates</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Briefcase className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="text-gray-500 mt-2">No active jobs found</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Today's Interviews */}
-          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
-            <div className="px-6 py-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Today&apos;s Interviews</h3>
-                <Link
-                  href="/candidates"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-                >
-                  View all candidates →
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {todayInterviews.length > 0 ? (
-                  todayInterviews.map((candidate) => (
-                    <div key={candidate.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-base font-semibold text-gray-900">{candidate.candidateName}</h4>
-                          <p className="text-sm text-gray-600 font-medium">{candidate.job.title} at {candidate.job.companyName}</p>
-                          <p className="text-xs text-gray-500 mt-1">{candidate.email}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            candidate.status === 'selected' 
-                              ? 'bg-green-100 text-green-800'
-                              : candidate.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {candidate.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="text-gray-500 mt-2">No interviews scheduled for today</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Quick Actions */}
         <div className="mt-8 bg-white shadow-lg rounded-xl border border-gray-100">
           <div className="px-6 py-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Link
-                href="/jobs/new"
-                className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 shadow-sm hover:shadow-md"
+              <button
+                onClick={handleOpenCreateJobDialog}
+                className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 shadow-sm hover:shadow-md w-full text-left"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-indigo-100 rounded-lg mr-3">
@@ -314,7 +215,7 @@ export default function Dashboard() {
                   </div>
                   <span className="text-sm font-semibold text-indigo-900">Add New Job</span>
                 </div>
-              </Link>
+              </button>
               <Link
                 href="/candidates/new"
                 className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -353,6 +254,13 @@ export default function Dashboard() {
         </div>
       </main>
       </div>
+
+      {/* Create Job Dialog */}
+      <CreateJobDialog
+        isOpen={isCreateJobDialogOpen}
+        onClose={handleCloseCreateJobDialog}
+        onJobCreated={handleJobCreated}
+      />
     </Layout>
   )
 }

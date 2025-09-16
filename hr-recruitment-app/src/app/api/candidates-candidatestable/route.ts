@@ -74,7 +74,7 @@ export async function GET() {
       eventId: record.event_id || record.Event_ID || record.calendarEventId || "",
       emailProviderId: record.email_provider_id || record.Email_Provider_ID || record.emailServiceProvider || "",
       subject: record.subject || record.Subject || record.messageSubject || "",
-      status: "new", // Default status
+      status: record.status || record.Status || record.candidateStatus,
       interviewDate: record.meeting_date || record.Meeting_Date || record.interviewDate || null,
       createdAt: new Date().toISOString(),
       job: {

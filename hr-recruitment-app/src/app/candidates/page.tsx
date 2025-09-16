@@ -133,13 +133,13 @@ export default function CandidatesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'selected':
+      case 'Accepted':
         return 'bg-green-100 text-green-800'
-      case 'rejected':
+      case 'Rejected':
         return 'bg-red-100 text-red-800'
-      case 'interviewed':
+      case 'Interview Scheduled':
         return 'bg-blue-100 text-blue-800'
-      case 'contacted':
+      case 'Sourced':
         return 'bg-yellow-100 text-yellow-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -196,11 +196,10 @@ export default function CandidatesPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">All Status</option>
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="interviewed">Interviewed</option>
-              <option value="selected">Selected</option>
-              <option value="rejected">Rejected</option>
+              <option value="Sourced">Sourced</option>
+              <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
             </select>
             <button
               type="submit"

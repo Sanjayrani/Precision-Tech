@@ -2,17 +2,15 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
+    console.log("=== DASHBOARD API CALLED ===")
+    
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
     const tableId = process.env.NEXT_PUBLIC_JOBS_TABLE_ID
     const apiKey = process.env.NEXT_PUBLIC_SECRET_ID
 
-    console.log("Fetching jobs from Wexa API...")
-    console.log("Project ID:", projectId)
-    console.log("Jobs Table ID:", tableId)
-
     // Check if required parameters are set
     if (!projectId || !tableId || !apiKey) {
-      throw new Error("Missing required parameters")
+      throw new Error("Missing required Wexa API parameters")
     }
 
     const url = `https://api.wexa.ai/storage/${projectId}/${tableId}`
@@ -35,7 +33,7 @@ export async function GET() {
     console.log("Jobs records count:", data.records?.length || 0)
     
     // Map the records to match the jobs schema
-    const mappedJobs = data.records?.map((record: any, index: number) => ({
+    const allJobs = data.records?.map((record: any, index: number) => ({
       id: record.job_id || record._id || `job-${index + 1}`,
       title: record.job_title || record.Job_Title || record.title || `Job ${index + 1}`,
       description: record.job_description || record.Job_Description || record.description || "",
@@ -48,27 +46,41 @@ export async function GET() {
       recruiterName: record.recruiter_name || record.Recruiter_Name || record.recruiterName || "Recruiter",
       recruiterEmail: record.recruiter_email || record.Recruiter_Email || record.recruiterEmail || "",
       recruiterDesignation: record.recruiter_designation || record.Recruiter_Designation || record.recruiterDesignation || "HR Manager",
-      jobStatus: record.job_status || record.Job_Status || record.jobStatus,
-      isActive: true,
+      jobStatus: record.job_status || record.Job_Status || record.jobStatus || "Active",
+      isActive: (record.job_status || record.Job_Status || record.jobStatus || "Active").toLowerCase() === "active",
       _count: {
         candidates: 0 // This would need to be fetched separately if you have candidate data
       }
     })) || []
 
+    // Get total jobs count
+    const totalJobs = allJobs.length
+    console.log("Total jobs:", totalJobs)
+    
+    // Get active jobs (where jobStatus is "Active")
+    const activeJobs = allJobs.filter(job => 
+      (job.jobStatus || "Active").toLowerCase() === "active"
+    ).slice(0, 5) // Limit to 5 for dashboard display
+    
+    console.log("Active jobs found:", activeJobs.length)
+    
     return NextResponse.json({
       success: true,
-      jobs: mappedJobs,
-      totalCount: data.total_count || mappedJobs.length,
-      message: "Jobs fetched successfully from Wexa table"
+      data: {
+        totalJobs,
+        activeJobs,
+        activeJobsCount: activeJobs.length
+      }
     })
-
+    
   } catch (error) {
-    console.error("Error fetching jobs from Wexa AI:", error)
+    console.error("Error fetching dashboard data:", error)
     return NextResponse.json(
-      { 
-        error: "Failed to fetch jobs from Wexa table",
+      {
+        success: false,
+        error: "Failed to fetch dashboard data",
         details: error instanceof Error ? error.message : "Unknown error"
-      }, 
+      },
       { status: 500 }
     )
   }
