@@ -19,6 +19,32 @@ const normalizeMessageText = (text: string): string => {
     .trim()
 }
 
+// Safely parse a date-like value into a Date, or return null
+const safeParseDate = (value?: string | number | Date | null): Date | null => {
+  if (!value) return null
+  const d = value instanceof Date ? new Date(value.getTime()) : new Date(value)
+  return isNaN(d.getTime()) ? null : d
+}
+
+// Pick the best available date: message -> candidate.lastContactedDate -> now
+const pickBestDate = (primary?: string | number | Date | null, fallback?: string | number | Date | null): Date => {
+  return safeParseDate(primary) ?? safeParseDate(fallback) ?? new Date()
+}
+
+// Format a timestamp string for display (e.g., "16 Sep 2025, 2:45 PM")
+const formatTimestamp = (ts?: string): string => {
+  const d = safeParseDate(ts)
+  const date = d ?? new Date()
+  return date.toLocaleString('en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })
+}
+
 interface Message {
   id: string
   content: string
@@ -26,6 +52,7 @@ interface Message {
   sender: 'recruiter' | 'candidate'
   senderName: string
   channel?: 'linkedin' | 'mail'
+  tag?: string
   isRead?: boolean
 }
 
@@ -88,20 +115,41 @@ export default function CommunicationInterface({ candidates, loading }: Communic
 
   // Extract content and metadata from prefixed strings like:
   // "Candidate - LinkedIn : hello" or "Recruiter - Mail : Hi"
-  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail' } => {
+  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail'; followUp?: boolean } => {
     if (typeof raw !== 'string') {
       return { content: String(raw ?? '') }
     }
-    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail)\s*:\s*(.*)$/i
+    // Accept optional trailing "- Follow Up" segment before colon
+    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail)(?:\s*-\s*Follow\s*Up)?\s*:\s*(.*)$/i
     const m = raw.match(re)
     if (m) {
       const senderRaw = m[1]
       const channelRaw = m[2]
       const rest = m[3]
+      const followUp = /-\s*Follow\s*Up\s*:/i.test(raw)
       return {
         content: rest?.trim() ?? '',
         senderFromPrefix: senderRaw === 'Recruiter' ? 'Recruiter' : 'Candidate',
-        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : 'linkedin'
+        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : 'linkedin',
+        followUp
+      }
+    }
+    // Heuristic: look at the prefix before the first ':' to infer sender/channel even with non-standard hyphens/spaces
+    const firstColon = raw.indexOf(':')
+    if (firstColon !== -1) {
+      const prefix = raw.slice(0, firstColon).toLowerCase()
+      let inferredSender: 'Recruiter' | 'Candidate' | undefined
+      if (prefix.includes('candidate')) inferredSender = 'Candidate'
+      else if (prefix.includes('recruiter')) inferredSender = 'Recruiter'
+      let inferredChannel: 'linkedin' | 'mail' | undefined
+      if (prefix.includes('mail') || prefix.includes('email')) inferredChannel = 'mail'
+      else if (prefix.includes('linkedin') || prefix.includes('linked in')) inferredChannel = 'linkedin'
+      const followUp = /follow\s*up/i.test(prefix)
+      return {
+        content: raw.slice(firstColon + 1).trim(),
+        senderFromPrefix: inferredSender,
+        channel: inferredChannel,
+        followUp
       }
     }
     // If there's any colon, take content after the first colon (defensive)
@@ -165,12 +213,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
           const messages: Message[] = []
           
           const overall = getOverallMessagesValue(candidate)
-
-          const defaultTime = new Date(candidate.lastContactedDate).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          })
+          const defaultDate = pickBestDate(candidate.lastContactedDate)
 
           const pushParsed = (rawContent: unknown, inferredSender?: 'Recruiter' | 'Candidate', channelHint?: 'linkedin' | 'mail') => {
             if (rawContent == null) return
@@ -184,13 +227,18 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               const extracted = extractFromPrefixed(obj.content)
               const senderFinal = extracted.senderFromPrefix || obj.sender || inferredSender || 'Recruiter'
               const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(obj.content) ? 'mail' : 'linkedin'))
+              const tsDate = pickBestDate(obj.timestamp, defaultDate)
+              const tagLabel = extracted.followUp
+                ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+                : undefined
               messages.push({
                 id: `msg-${candidate.id}-${messages.length}`,
                 content: normalizeMessageText(extracted.content),
-                timestamp: obj.timestamp || defaultTime,
+                timestamp: tsDate.toISOString(),
                 sender: senderFinal === 'Recruiter' ? 'recruiter' : 'candidate',
                 senderName: senderFinal === 'Recruiter' ? 'Recruiter' : candidate.candidateName,
                 channel: channelFinal,
+                tag: tagLabel,
                 isRead: senderFinal === 'Candidate' ? false : true
               })
               return
@@ -199,13 +247,18 @@ export default function CommunicationInterface({ candidates, loading }: Communic
             const extracted = extractFromPrefixed(String(rawContent))
             const senderFinal = extracted.senderFromPrefix || inferredSender || 'Recruiter'
             const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(String(rawContent)) ? 'mail' : 'linkedin'))
+            const tsDate = defaultDate
+            const tagLabel = extracted.followUp
+              ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+              : undefined
             messages.push({
               id: `msg-${candidate.id}-${messages.length}`,
               content: normalizeMessageText(extracted.content),
-              timestamp: defaultTime,
+              timestamp: tsDate.toISOString(),
               sender: senderFinal === 'Recruiter' ? 'recruiter' : 'candidate',
               senderName: senderFinal === 'Recruiter' ? 'Recruiter' : candidate.candidateName,
               channel: channelFinal,
+              tag: tagLabel,
               isRead: senderFinal === 'Candidate' ? false : true
             })
           }
@@ -249,7 +302,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
             taskId: candidate.job?.title || candidate.jobsMapped || 'Position', // Show only job title
             messages,
             lastMessage: lastMessage?.content || 'No messages',
-            lastMessageTime: lastMessage?.timestamp || '',
+            lastMessageTime: lastMessage ? formatTimestamp(lastMessage.timestamp) : '',
             unreadCount: messages.filter(m => m.sender === 'candidate' && !m.isRead).length
           }
         })
@@ -274,11 +327,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
     const message: Message = {
       id: `msg-${Date.now()}`,
       content: newMessage,
-      timestamp: new Date().toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      }),
+      timestamp: new Date().toISOString(),
       sender: 'recruiter',
       senderName: 'You',
       channel: 'linkedin',
@@ -400,9 +449,9 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                     <div className="text-[10px] mb-1 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {message.sender === 'recruiter' ? (
-                        <span className="font-bold text-white">Recruiter</span>
+                        <span className="font-bold text-white text-base">Recruiter</span>
                       ) : (
-                        <span className="flex items-center font-bold text-white"><User className="h-3 w-3 mr-1" />Candidate</span>
+                        <span className="flex items-center font-bold text-white text-base"><User className="h-4 w-4 mr-1" />Candidate</span>
                       )}
                       {message.channel && (
                         <span
@@ -410,11 +459,11 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                             message.channel === 'linkedin' ? 'border-blue-600' : 'border-amber-500'
                           }`}
                         >
-                          {message.channel === 'linkedin' ? 'LinkedIn' : 'Email'}
+                          {message.tag ? message.tag : (message.channel === 'linkedin' ? 'LinkedIn' : 'Email')}
                         </span>
                       )}
                     </div>
-                    <span className="ml-2">{message.timestamp}</span>
+                    <span className="ml-2">{formatTimestamp(message.timestamp)}</span>
                   </div>
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
