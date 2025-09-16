@@ -1,16 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { 
   Home, 
   Users, 
   Briefcase,
   Search,
   BarChart3,
-  Settings,
-  LogOut,
-  MessageSquare
+  Settings
 } from 'lucide-react'
 
 const navigation = [
@@ -24,16 +22,6 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/dashboard')
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }
 
   return (
     <div className="flex flex-col w-64 bg-white shadow-xl border-r border-gray-200">
@@ -64,18 +52,6 @@ export default function Sidebar() {
           )
         })}
       </nav>
-
-
-      {/* Logout */}
-      <div className="px-4 py-4 border-t border-gray-200">
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-all duration-200 border border-red-200"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </button>
-      </div>
     </div>
   )
 }

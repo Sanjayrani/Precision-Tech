@@ -32,6 +32,14 @@ export async function GET() {
     console.log("Wexa API Response:", JSON.stringify(data, null, 2))
     console.log("Jobs records count:", data.records?.length || 0)
     
+    // Debug: Log raw job statuses from Wexa
+    console.log("Raw job statuses from Wexa:", data.records?.map((record: any) => ({
+      title: record.job_title || record.Job_Title,
+      job_status: record.job_status,
+      Job_Status: record.Job_Status,
+      jobStatus: record.jobStatus
+    })))
+    
     // Map the records to match the jobs schema
     const allJobs = data.records?.map((record: any, index: number) => ({
       id: record.job_id || record._id || `job-${index + 1}`,
@@ -46,8 +54,7 @@ export async function GET() {
       recruiterName: record.recruiter_name || record.Recruiter_Name || record.recruiterName || "Recruiter",
       recruiterEmail: record.recruiter_email || record.Recruiter_Email || record.recruiterEmail || "",
       recruiterDesignation: record.recruiter_designation || record.Recruiter_Designation || record.recruiterDesignation || "HR Manager",
-      jobStatus: record.job_status || record.Job_Status || record.jobStatus || "Active",
-      isActive: (record.job_status || record.Job_Status || record.jobStatus || "Active").toLowerCase() === "active",
+      jobStatus: record.job_status || record.Job_Status || record.jobStatus,
       _count: {
         candidates: 0 // This would need to be fetched separately if you have candidate data
       }
@@ -57,9 +64,15 @@ export async function GET() {
     const totalJobs = allJobs.length
     console.log("Total jobs:", totalJobs)
     
-    // Get active jobs (where jobStatus is "Active")
+    // Debug: Log all job statuses
+    console.log("All job statuses:", allJobs.map(job => ({
+      title: job.title,
+      status: job.jobStatus
+    })))
+    
+    // Get active jobs (where jobStatus is "Active" - case sensitive)
     const activeJobs = allJobs.filter(job => 
-      (job.jobStatus || "Active").toLowerCase() === "active"
+      job.jobStatus === "Active"
     ).slice(0, 5) // Limit to 5 for dashboard display
     
     console.log("Active jobs found:", activeJobs.length)
