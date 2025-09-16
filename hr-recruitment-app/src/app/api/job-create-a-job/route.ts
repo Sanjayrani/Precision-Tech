@@ -43,7 +43,14 @@ export async function POST(request: Request) {
     const requestBody = {
       agentflow_id: agentflow_id,
       executed_by: executed_by,
-      goal: `Create new job: ${job_title} at ${company_name} in ${job_location}`,
+      goal: `Job Title : ${job_title}
+Job Description : ${job_description}
+Job Location : "${job_location}"
+Company Name : ${company_name}
+Company Description : ${company_description || "No company description provided"}
+Recruiter Name : ${recruiter_name}
+Recruiter Email : ${recruiter_email}
+Recruiter Designation : ${recruiter_designation}`,
       input_variables: {
         job_title: job_title,
         job_description: job_description,

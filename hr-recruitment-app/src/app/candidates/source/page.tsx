@@ -36,18 +36,9 @@ export default function SourceCandidatesPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <Search className="w-8 h-8 text-indigo-600 mr-3" />
-                <h1 className="text-3xl font-bold text-gray-900">Source Candidates</h1>
-              </div>
-              <button
-                onClick={handleOpenDialog}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center transition-all shadow-md hover:shadow-lg"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Start Sourcing
-              </button>
+            <div className="flex items-center mb-4">
+              <Search className="w-8 h-8 text-indigo-600 mr-3" />
+              <h1 className="text-3xl font-bold text-gray-900">Source Candidates</h1>
             </div>
             <p className="text-gray-600">
               Initiate candidate sourcing for specific job positions with targeted criteria using LinkedIn
