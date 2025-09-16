@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
 
+// Define minimal job shape to avoid implicit any in array callbacks
+type JobItem = {
+  jobStatus?: string
+  [key: string]: unknown
+}
+
 export async function GET() {
   try {
     console.log("=== DASHBOARD API CALLED ===")
@@ -33,7 +39,8 @@ export async function GET() {
     console.log("Jobs records count:", data.records?.length || 0)
     
     // Map the records to match the jobs schema
-    const allJobs = data.records?.map((record: any, index: number) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allJobs: JobItem[] = data.records?.map((record: any, index: number) => ({
       id: record.job_id || record._id || `job-${index + 1}`,
       title: record.job_title || record.Job_Title || record.title || `Job ${index + 1}`,
       description: record.job_description || record.Job_Description || record.description || "",

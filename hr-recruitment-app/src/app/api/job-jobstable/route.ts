@@ -35,6 +35,7 @@ export async function GET() {
     console.log("Jobs records count:", data.records?.length || 0)
     
     // Map the records to match the jobs schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mappedJobs = data.records?.map((record: any, index: number) => ({
       id: record.job_id || record._id || `job-${index + 1}`,
       title: record.job_title || record.Job_Title || record.title || `Job ${index + 1}`,

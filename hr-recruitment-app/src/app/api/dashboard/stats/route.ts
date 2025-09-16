@@ -57,12 +57,14 @@ export async function GET() {
       totalCandidates = candidates.length
       
       console.log("Total candidates from Wexa:", totalCandidates)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.log("All candidate statuses:", candidates.map((c: any) => ({
         name: c.candidate_name || c.Candidate_Name,
         status: c.status || c.Status
       })))
       
       // Count candidates by status (case sensitive)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       candidates.forEach((candidate: any) => {
         const status = candidate.status || candidate.Status || ""
         

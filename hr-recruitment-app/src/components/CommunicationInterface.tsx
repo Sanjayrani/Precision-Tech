@@ -385,15 +385,25 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               }`}
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-medium text-gray-900">{conversation.id}</h3>
-                    <span className="text-xs text-gray-500">{conversation.lastMessageTime}</span>
+                    <span className="text-xs text-gray-500 ml-2 shrink-0 whitespace-nowrap">{conversation.lastMessageTime}</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-1">Candidate: {conversation.candidateName}</p>
                   <p className="text-sm text-gray-600 mb-1">Contact: {conversation.contact}</p>
                   <p className="text-sm text-gray-600 mb-1">Job: {conversation.taskId}</p>
-                  <p className="text-sm text-gray-500 truncate">{conversation.lastMessage}</p>
+                  <p
+                    className="text-sm text-gray-500 w-full leading-snug pr-6"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {conversation.lastMessage}
+                  </p>
                 </div>
                 {conversation.unreadCount > 0 && (
                   <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1 ml-2">

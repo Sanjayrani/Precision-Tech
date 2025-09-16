@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { htmlToPlainText } from "@/lib/formatHtml"
 
 export async function GET() {
   try {
@@ -35,6 +36,7 @@ export async function GET() {
     console.log("Candidates records count:", data.records?.length || 0)
     
     // Map the records to match the candidates schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mappedCandidates = data.records?.map((record: any, index: number) => ({
       id: record.candidate_id || record._id || `candidate-${index + 1}`,
       candidateName: record.candidate_name || record.Candidate_Name || record.name || `Candidate ${index + 1}`,
@@ -61,27 +63,36 @@ export async function GET() {
       emailMessages: record.email_messages || record.Email_Messages || record.emailMessageCount || 0,
       // Handle overall_messages based on its type - using only real data
       overallMessages: (() => {
-        // If it's already an array of message objects, use it directly
-        if (Array.isArray(record.overall_messages) && record.overall_messages.length > 0) {
-          return record.overall_messages;
+        // Prefer explicit overall_messages, fallback to Overall_Messages
+        const raw = (record.overall_messages ?? record.Overall_Messages) as unknown
+
+        // Array case: map each entry; convert strings from HTML to plain text
+        if (Array.isArray(raw)) {
+          return raw.map((item: unknown) => {
+            if (typeof item === 'string') return htmlToPlainText(item)
+            if (item && typeof item === 'object') {
+              const obj = { ...(item as Record<string, unknown>) }
+              // Try to clean common content keys if present
+              const keysToClean = ['message', 'content', 'text', 'body', 'value'] as const
+              for (const key of keysToClean) {
+                const val = obj[key]
+                if (typeof val === 'string') {
+                  obj[key] = htmlToPlainText(val)
+                }
+              }
+              return obj
+            }
+            return item
+          })
         }
-        
-        // If it's an array of message objects in a different field, use that
-        if (record.Overall_Messages && Array.isArray(record.Overall_Messages) && record.Overall_Messages.length > 0) {
-          return record.Overall_Messages;
+
+        // String case: convert HTML into plain text
+        if (typeof raw === 'string') {
+          return htmlToPlainText(raw)
         }
-        
-        // If it's a single string, return it as is
-        if (typeof record.overall_messages === 'string') {
-          return record.overall_messages;
-        }
-        
-        if (typeof record.Overall_Messages === 'string') {
-          return record.Overall_Messages;
-        }
-        
-        // Return empty array if no real data is available
-        return [];
+
+        // Nothing usable
+        return []
       })(),
       followUpCount: record.follow_up_count || record.Follow_Up_Count || record.followUpAttempts || 0,
       candidateLocation: record.candidate_location || record.Candidate_Location || record.location || "",
