@@ -7,6 +7,31 @@ import CreateJobDialog from '@/components/CreateJobDialog'
 import { Calendar, Users, Briefcase, TrendingUp, Plus } from 'lucide-react'
 
 
+interface Job {
+  id: string
+  title: string
+  companyName: string
+  location: string
+  mode: string
+  postedDate: string
+  jobStatus: string
+  _count?: {
+    candidates: number
+  }
+}
+
+interface Candidate {
+  id: string
+  candidateName: string
+  email: string
+  status: string
+  interviewDate: string | null
+  job: {
+    title: string
+    companyName: string
+  }
+}
+
 interface DashboardStats {
   totalJobs: number
   totalCandidates: number
@@ -16,6 +41,8 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const [activeJobs, setActiveJobs] = useState<Job[]>([])
+  const [scheduledInterviews, setScheduledInterviews] = useState<Candidate[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalJobs: 0,
     totalCandidates: 0,
@@ -32,9 +59,10 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [dashboardRes, statsRes] = await Promise.all([
+      const [dashboardRes, statsRes, candidatesRes] = await Promise.all([
         fetch('/api/dashboard'),
-        fetch('/api/dashboard/stats')
+        fetch('/api/dashboard/stats'),
+        fetch('/api/candidates-candidatestable')
       ])
 
       if (dashboardRes.ok) {
@@ -45,6 +73,8 @@ export default function Dashboard() {
             ...prevStats,
             totalJobs: dashboardData.data.totalJobs
           }))
+          // Set active jobs (already filtered by API)
+          setActiveJobs(dashboardData.data.activeJobs || [])
         }
       }
 
@@ -60,6 +90,17 @@ export default function Dashboard() {
           }))
         }
       }
+
+      if (candidatesRes.ok) {
+        const candidatesData = await candidatesRes.json()
+        if (candidatesData.success) {
+          // Filter candidates with status "Interview Scheduled" (case sensitive)
+          const scheduledCandidates = candidatesData.candidates?.filter((candidate: Candidate) => 
+            candidate.status === "Interview Scheduled"
+          ) || []
+          setScheduledInterviews(scheduledCandidates)
+        }
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -67,7 +108,13 @@ export default function Dashboard() {
     }
   }
 
-
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
 
   const handleJobCreated = () => {
     // Refresh dashboard data when a new job is created
@@ -199,6 +246,85 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Active Jobs and Interviews Scheduled Section */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Active Jobs */}
+          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
+            <div className="px-6 py-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Active Jobs</h3>
+                <Link
+                  href="/jobs"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                >
+                  View all →
+                </Link>
+              </div>
+              <div className="space-y-4">
+                {activeJobs.length > 0 ? (
+                  activeJobs.map((job) => (
+                    <div key={job.id} className="bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-base font-semibold text-gray-900">{job.title}</h4>
+                          <p className="text-sm text-gray-600 font-medium">{job.companyName}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {job.location} • {job.mode} • Posted {formatDate(job.postedDate)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Briefcase className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="text-gray-500 mt-2">No active jobs found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Interviews Scheduled */}
+          <div className="bg-white shadow-lg rounded-xl border border-gray-100">
+            <div className="px-6 py-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Interviews Scheduled</h3>
+                <Link
+                  href="/candidates"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                >
+                  View all →
+                </Link>
+              </div>
+              <div className="space-y-4">
+                {scheduledInterviews.length > 0 ? (
+                  scheduledInterviews.map((candidate) => (
+                    <div key={candidate.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-base font-semibold text-gray-900">{candidate.candidateName}</h4>
+                          <p className="text-sm text-gray-600 font-medium">{candidate.job.title} at {candidate.job.companyName}</p>
+                          <p className="text-xs text-gray-500 mt-1">{candidate.email}</p>
+                          {candidate.interviewDate && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              Interview: {formatDate(candidate.interviewDate)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="text-gray-500 mt-2">No interviews scheduled</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Quick Actions */}
         <div className="mt-8 bg-white shadow-lg rounded-xl border border-gray-100">
