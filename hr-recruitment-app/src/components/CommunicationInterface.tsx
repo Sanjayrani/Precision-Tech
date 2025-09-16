@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { Search, Phone, MoreHorizontal, Send, User, Building2 } from 'lucide-react'
 
 // Normalize message text so that literal "\n" becomes real newlines and spacing is preserved
@@ -43,6 +43,60 @@ const formatTimestamp = (ts?: string): string => {
     minute: '2-digit',
     hour12: true
   })
+}
+
+// Turn raw URLs and emails into clickable links (without duplicating matches)
+const linkifyText = (text: string) => {
+  const input = text ?? ''
+  const pattern = /(https?:\/\/[^\s<]+|www\.[^\s<]+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,})/gi
+  const nodes: ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  let lastLinkedTokenLower: string | null = null
+
+  while ((match = pattern.exec(input)) !== null) {
+    const start = match.index
+    const end = start + match[0].length
+    const between = input.slice(lastIndex, start)
+
+    const token = match[0]
+    const tokenLower = token.toLowerCase()
+
+    // If the previous item was the same link and the gap is only whitespace or punctuation, skip duplicate
+    if (
+      lastLinkedTokenLower &&
+      lastLinkedTokenLower === tokenLower &&
+      /^[\s.,;:()\[\]{}<>"'!\-]*$/.test(between)
+    ) {
+      lastIndex = end
+      continue
+    }
+
+    if (between) nodes.push(between)
+
+    if (/^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/i.test(token)) {
+      nodes.push(
+        <a key={`e-${start}`} href={`mailto:${token}`} className="underline" target="_blank" rel="noreferrer noopener">
+          {token}
+        </a>
+      )
+    } else {
+      const href = tokenLower.startsWith('http') ? token : `https://${token}`
+      nodes.push(
+        <a key={`u-${start}`} href={href} className="underline" target="_blank" rel="noreferrer noopener">
+          {token}
+        </a>
+      )
+    }
+
+    lastLinkedTokenLower = tokenLower
+    lastIndex = end
+  }
+
+  if (lastIndex < input.length) {
+    nodes.push(input.slice(lastIndex))
+  }
+  return nodes
 }
 
 interface Message {
@@ -405,11 +459,6 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                     {conversation.lastMessage}
                   </p>
                 </div>
-                {conversation.unreadCount > 0 && (
-                  <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1 ml-2">
-                    {conversation.unreadCount}
-                  </span>
-                )}
               </div>
             </div>
           ))}
@@ -475,7 +524,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                     </div>
                     <span className="ml-2">{formatTimestamp(message.timestamp)}</span>
                   </div>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{linkifyText(message.content)}</p>
                   </div>
                 </div>
               ))
