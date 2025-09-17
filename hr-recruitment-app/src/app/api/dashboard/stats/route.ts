@@ -72,7 +72,7 @@ export async function GET() {
           case "Interview Scheduled":
             interviewsScheduled++
             break
-          case "Accepted":
+          case "Selected":
             acceptedCandidates++
             break
           case "Sourced":

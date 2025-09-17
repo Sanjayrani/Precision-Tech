@@ -133,7 +133,7 @@ export default function CandidatesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Accepted':
+      case 'Selected':
         return 'bg-green-100 text-green-800'
       case 'Rejected':
         return 'bg-red-100 text-red-800'
@@ -198,7 +198,7 @@ export default function CandidatesPage() {
               <option value="">All Status</option>
               <option value="Sourced">Sourced</option>
               <option value="Interview Scheduled">Interview Scheduled</option>
-              <option value="Accepted">Accepted</option>
+              <option value="Selected">Selected</option>
               <option value="Rejected">Rejected</option>
             </select>
             <button
