@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       agentflow_id: agentflow_id,
       executed_by: executed_by,
       goal: `Job Title : ${job_title}
+      Job Mode : ${job_mode}
 Job Description : ${job_description}
 Job Location : "${job_location}"
 Company Name : ${company_name}

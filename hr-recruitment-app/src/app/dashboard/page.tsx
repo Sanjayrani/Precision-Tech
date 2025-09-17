@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import CreateJobDialog from '@/components/CreateJobDialog'
-import { Calendar, Users, Briefcase, TrendingUp, Plus } from 'lucide-react'
+import SourceCandidatesDialog from '@/components/SourceCandidatesDialog'
+import { Calendar, Users, Briefcase, TrendingUp, Plus, Search } from 'lucide-react'
 
 
 interface Job {
@@ -52,6 +53,7 @@ export default function Dashboard() {
   })
   const [loading, setLoading] = useState(true)
   const [isCreateJobDialogOpen, setIsCreateJobDialogOpen] = useState(false)
+  const [isSourceCandidatesDialogOpen, setIsSourceCandidatesDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -129,6 +131,19 @@ export default function Dashboard() {
 
   const handleCloseCreateJobDialog = () => {
     setIsCreateJobDialogOpen(false)
+  }
+
+  const handleOpenSourceCandidatesDialog = () => {
+    setIsSourceCandidatesDialogOpen(true)
+  }
+
+  const handleCloseSourceCandidatesDialog = () => {
+    setIsSourceCandidatesDialogOpen(false)
+  }
+
+  const handleSourcingInitiated = () => {
+    // Refresh dashboard data when sourcing is initiated
+    fetchDashboardData()
   }
 
   if (loading) {
@@ -333,28 +348,28 @@ export default function Dashboard() {
           <div className="px-6 py-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <button
-                onClick={handleOpenCreateJobDialog}
-                className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 shadow-sm hover:shadow-md w-full text-left"
-              >
-                <div className="flex items-center">
-                  <div className="p-2 bg-indigo-100 rounded-lg mr-3">
-                    <Plus className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <span className="text-sm font-semibold text-indigo-900">Add New Job</span>
-                </div>
-              </button>
-              <Link
-                href="/candidates/new"
-                className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 hover:from-green-100 hover:to-emerald-100 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg mr-3">
-                    <Users className="h-5 w-5 text-green-600" />
-                  </div>
-                  <span className="text-sm font-semibold text-green-900">Add Candidate</span>
-                </div>
-              </Link>
+               <button
+                 onClick={handleOpenCreateJobDialog}
+                 className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 shadow-sm hover:shadow-md w-full text-left"
+               >
+                 <div className="flex items-center">
+                   <div className="p-2 bg-indigo-100 rounded-lg mr-3">
+                     <Plus className="h-5 w-5 text-indigo-600" />
+                   </div>
+                   <span className="text-sm font-semibold text-indigo-900">Add New Job</span>
+                 </div>
+               </button>
+               <button
+                 onClick={handleOpenSourceCandidatesDialog}
+                 className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 hover:from-purple-100 hover:to-pink-100 transition-all duration-200 shadow-sm hover:shadow-md w-full text-left"
+               >
+                 <div className="flex items-center">
+                   <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                     <Search className="h-5 w-5 text-purple-600" />
+                   </div>
+                   <span className="text-sm font-semibold text-purple-900">Start Sourcing</span>
+                 </div>
+               </button>
               <Link
                 href="/jobs"
                 className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6 hover:from-blue-100 hover:to-cyan-100 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -383,12 +398,19 @@ export default function Dashboard() {
       </main>
       </div>
 
-      {/* Create Job Dialog */}
-      <CreateJobDialog
-        isOpen={isCreateJobDialogOpen}
-        onClose={handleCloseCreateJobDialog}
-        onJobCreated={handleJobCreated}
-      />
-    </Layout>
-  )
-}
+       {/* Create Job Dialog */}
+       <CreateJobDialog
+         isOpen={isCreateJobDialogOpen}
+         onClose={handleCloseCreateJobDialog}
+         onJobCreated={handleJobCreated}
+       />
+
+       {/* Source Candidates Dialog */}
+       <SourceCandidatesDialog
+         isOpen={isSourceCandidatesDialogOpen}
+         onClose={handleCloseSourceCandidatesDialog}
+         onSourcingInitiated={handleSourcingInitiated}
+       />
+     </Layout>
+   )
+ }

@@ -196,15 +196,6 @@ export default function CandidatesPage() {
                 <h1 className="text-3xl font-bold text-gray-900">Candidate Management</h1>
                 <p className="text-gray-600">Track and manage all your candidates</p>
               </div>
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/candidates/new"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Candidate
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -266,20 +257,13 @@ export default function CandidatesPage() {
                                 {candidate.candidateName}
                               </h3>
                               <div className="ml-2 flex items-center space-x-2">
-                                {candidate.candidateScore > 0 && (
-                                  <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
-                                    <Star className="w-4 h-4 mr-1" />
-                                    <span className="text-sm font-medium">{candidate.candidateScore}/10</span>
-                                  </div>
-                                )}
-                                <div className="flex flex-col items-center">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
-                                    {candidate.status}
-                                  </span>
-                                  {candidate.stage && (
-                                    <span className="mt-1 text-xs font-bold text-red-600 text-center block w-full">{candidate.stage}</span>
-                                  )}
+                                <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
+                                  <Star className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">{candidate.candidateScore}/100</span>
                                 </div>
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
+                                  {candidate.status}
+                                </span>
                               </div>
                             </div>
                             

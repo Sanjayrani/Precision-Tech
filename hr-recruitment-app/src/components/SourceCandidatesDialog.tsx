@@ -234,7 +234,10 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
                       Running...
                     </>
                   ) : (
-                    <>Run</>
+                    <>
+                      <Search className="w-5 h-5 mr-2" />
+                      Source
+                    </>
                   )}
                 </button>
               </div>
