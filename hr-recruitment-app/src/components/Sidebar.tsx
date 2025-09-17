@@ -7,8 +7,6 @@ import {
   Users, 
   Briefcase,
   Search,
-  BarChart3,
-  Settings,
   MessageSquare
 } from 'lucide-react'
 
@@ -18,7 +16,6 @@ const navigation = [
   { name: 'Candidates', href: '/candidates', icon: Users },
   { name: 'Source Candidates', href: '/candidates/source', icon: Search },
   { name: 'Communication', href: '/communications', icon: MessageSquare },
-  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export default function Sidebar() {
