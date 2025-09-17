@@ -24,6 +24,8 @@ export default function SourceCandidatesPage() {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
+    // After closing the form, navigate to Candidates tab
+    router.push('/candidates')
   }
 
   const handleSourcingInitiated = () => {

@@ -69,6 +69,26 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
     })
   }
 
+  // Format meeting/interview date like: "September 17th, 3:00 PM IST"
+  const formatMeetingIST = (dateString: string | null) => {
+    if (!dateString) return 'Not set'
+    const d = new Date(dateString)
+    if (isNaN(d.getTime())) return 'Not set'
+    const tz = 'Asia/Kolkata'
+    const month = d.toLocaleString('en-US', { timeZone: tz, month: 'long' })
+    const dayStr = d.toLocaleString('en-US', { timeZone: tz, day: '2-digit' })
+    const day = parseInt(dayStr, 10)
+    const suffix = (n: number) => {
+      const j = n % 10, k = n % 100
+      if (j === 1 && k !== 11) return 'st'
+      if (j === 2 && k !== 12) return 'nd'
+      if (j === 3 && k !== 13) return 'rd'
+      return 'th'
+    }
+    const time = d.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${month} ${day}${suffix(day)}, ${time} IST`
+  }
+
   const getStatusColor = (status: string | undefined) => {
     if (!status) return 'bg-gray-100 text-gray-800 border-gray-200'
     
@@ -336,9 +356,11 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                 <div>
                   <p className="text-sm font-medium text-gray-500">Follow-ups</p>
                   <p className="text-2xl font-bold text-gray-900">{candidate.followUpCount}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Last: {formatDate(candidate.lastContactedDate)}
-                  </p>
+                  {candidate.lastContactedDate && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Last: {formatDate(candidate.lastContactedDate)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -378,7 +400,7 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                     <Users className="h-5 w-5 text-teal-600 mr-2" />
                     <h3 className="font-semibold text-teal-900">Interview Scheduled</h3>
                   </div>
-                  <p className="text-gray-900">{formatDate(candidate.interviewDate)}</p>
+                  <p className="text-gray-900">{formatMeetingIST(candidate.interviewDate)}</p>
                 </div>
               )}
             </div>

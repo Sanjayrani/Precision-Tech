@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Search, Target, Users, Sparkles } from 'lucide-react'
+import { X, Target, Users, Sparkles } from 'lucide-react'
 
 interface Job {
   id: string
@@ -234,10 +234,7 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
                       Running...
                     </>
                   ) : (
-                    <>
-                      <Search className="w-5 h-5 mr-2" />
-                      Run
-                    </>
+                    <>Run</>
                   )}
                 </button>
               </div>

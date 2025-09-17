@@ -46,6 +46,7 @@ interface Candidate {
   emailProviderId: string
   subject: string
   status: string
+  stage: string
   interviewDate: string | null
   createdAt: string
   job: {
@@ -124,11 +125,43 @@ export default function CandidatesPage() {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    const raw = String(dateString).trim()
+    // If already D/M/Y or D-M-Y string, normalize to DD/MM/YYYY and show
+    const m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/)
+    if (m) {
+      const dd = m[1].padStart(2, '0')
+      const mm = m[2].padStart(2, '0')
+      const yyyy = m[3].length === 2 ? (parseInt(m[3], 10) < 50 ? `20${m[3]}` : `19${m[3]}`) : m[3]
+      return `${dd}/${mm}/${yyyy}`
+    }
+    // Otherwise try parsing and rendering as DD/MM/YYYY
+    const d = new Date(raw)
+    if (isNaN(d.getTime())) return raw
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  // Format meeting/interview date like: "September 17th, 3:00 PM IST"
+  const formatMeetingIST = (dateString: string | null) => {
+    if (!dateString) return 'Not set'
+    const d = new Date(dateString)
+    // If parsing fails (e.g., input already formatted like "September 17th, 3:00 PM IST"), show it as-is
+    if (isNaN(d.getTime())) return String(dateString)
+    const tz = 'Asia/Kolkata'
+    const month = d.toLocaleString('en-US', { timeZone: tz, month: 'long' })
+    const dayStr = d.toLocaleString('en-US', { timeZone: tz, day: '2-digit' })
+    const day = parseInt(dayStr, 10)
+    const suffix = (n: number) => {
+      const j = n % 10, k = n % 100
+      if (j === 1 && k !== 11) return 'st'
+      if (j === 2 && k !== 12) return 'nd'
+      if (j === 3 && k !== 13) return 'rd'
+      return 'th'
+    }
+    const time = d.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${month} ${day}${suffix(day)}, ${time} IST`
   }
 
   const getStatusColor = (status: string) => {
@@ -233,13 +266,20 @@ export default function CandidatesPage() {
                                 {candidate.candidateName}
                               </h3>
                               <div className="ml-2 flex items-center space-x-2">
-                                <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
-                                  <Star className="w-4 h-4 mr-1" />
-                                  <span className="text-sm font-medium">{candidate.candidateScore}/10</span>
+                                {candidate.candidateScore > 0 && (
+                                  <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
+                                    <Star className="w-4 h-4 mr-1" />
+                                    <span className="text-sm font-medium">{candidate.candidateScore}/10</span>
+                                  </div>
+                                )}
+                                <div className="flex flex-col items-center">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
+                                    {candidate.status}
+                                  </span>
+                                  {candidate.stage && (
+                                    <span className="mt-1 text-xs font-bold text-red-600 text-center block w-full">{candidate.stage}</span>
+                                  )}
                                 </div>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
-                                  {candidate.status}
-                                </span>
                               </div>
                             </div>
                             
@@ -265,7 +305,7 @@ export default function CandidatesPage() {
                               {candidate.interviewDate && (
                                 <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                                   <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                                  <p>Interview: {formatDate(candidate.interviewDate)}</p>
+                                  <p>Interview: {formatMeetingIST(candidate.interviewDate)}</p>
                                 </div>
                               )}
                             </div>
