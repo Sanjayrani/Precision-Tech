@@ -313,8 +313,11 @@ export default function CandidatesPage() {
                             <div className="mt-2 flex items-center justify-between">
                               <div>
                                 <p className="text-sm text-gray-900 font-medium">
-                                  {candidate.job.title} at {candidate.job.companyName}
+                                  Sourced For: {candidate.job.title} at {candidate.job.companyName}
                                 </p>
+                                {candidate.job?.id && (
+                                  <p className="text-xs text-gray-500 mt-1">Job ID: {candidate.job.id}</p>
+                                )}
                                 {candidate.currentJobTitle && candidate.currentEmployer && (
                                   <p className="text-sm text-gray-500">
                                     Currently: {candidate.currentJobTitle} at {candidate.currentEmployer}

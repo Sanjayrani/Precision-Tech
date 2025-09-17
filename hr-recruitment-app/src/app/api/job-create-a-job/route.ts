@@ -22,12 +22,6 @@ export async function POST(request: Request) {
 
     console.log("=== JOB CREATION API CALLED ===")
     console.log("Triggering WEXA job creation process flow...")
-    console.log("Project ID:", projectId)
-    console.log("Agent Flow ID:", agentflow_id)
-    console.log("Job Title:", job_title)
-    console.log("Company Name:", company_name)
-    console.log("Job Location:", job_location)
-    console.log("Request body received:", body)
 
     // Check if required parameters are set
     if (!projectId || !agentflow_id || !apiKey) {
@@ -69,8 +63,6 @@ Recruiter Designation : ${recruiter_designation}`,
     }
 
     console.log("=== MAKING WEXA API CALL ===")
-    console.log("URL:", url)
-    console.log("Request body:", JSON.stringify(requestBody, null, 2))
 
     const response = await fetch(url, {
       method: 'POST',
@@ -94,14 +86,13 @@ Recruiter Designation : ${recruiter_designation}`,
     let data = {}
     try {
       data = await response.json()
-      console.log("WEXA API response data:", JSON.stringify(data, null, 2))
+      // Redacted verbose API response body from logs
     } catch (jsonError) {
       console.log("Response is not JSON, treating as success")
       data = { success: true }
     }
 
     console.log("=== JOB CREATION SUCCESS ===")
-    console.log("Returning success response")
 
     return NextResponse.json({
       success: true,

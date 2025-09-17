@@ -211,9 +211,12 @@ export default function JobsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-medium text-indigo-600 truncate">
-                                {job.title}
-                              </h3>
+                              <div>
+                                <h3 className="text-lg font-medium text-indigo-600 truncate">
+                                  {job.title}
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-1">Job ID: {job.id}</p>
+                              </div>
                               <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getModeColor(job.mode)}`}>
                                   {job.mode}

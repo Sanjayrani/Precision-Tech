@@ -242,7 +242,7 @@ export default function NewCandidatePage() {
                   name="currentEmployer"
                   id="currentEmployer"
                   className="mt-1 block w-full px-4 py-3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-base text-gray-900 placeholder-gray-500"
-                  placeholder="e.g., Tech Corp Inc."
+                  placeholder="e.g., PrecisionTech Corp Inc."
                   value={formData.currentEmployer}
                   onChange={handleChange}
                 />
