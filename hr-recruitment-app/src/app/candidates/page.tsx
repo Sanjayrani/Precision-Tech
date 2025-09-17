@@ -86,6 +86,14 @@ export default function CandidatesPage() {
     }
   }
 
+  // Normalize status labels so that "Meeting Scheduled" is treated as "Interview Scheduled"
+  function normalizeStatus(status: string) {
+    if (!status) return status
+    const s = status.trim()
+    if (s === 'Meeting Scheduled') return 'Interview Scheduled'
+    return s
+  }
+
   // Filter candidates based on search term and status
   const filteredCandidates = candidates.filter(candidate => {
     const matchesSearch = !search || (
@@ -96,7 +104,8 @@ export default function CandidatesPage() {
       candidate.currentEmployer?.toLowerCase().includes(search.toLowerCase())
     )
     
-    const matchesStatus = !statusFilter || candidate.status === statusFilter
+    const normalized = normalizeStatus(candidate.status)
+    const matchesStatus = !statusFilter || normalized === statusFilter
     
     return matchesSearch && matchesStatus
   })
@@ -172,6 +181,8 @@ export default function CandidatesPage() {
         return 'bg-red-100 text-red-800'
       case 'Interview Scheduled':
         return 'bg-blue-100 text-blue-800'
+      case 'Shortlisted':
+        return 'bg-indigo-100 text-indigo-800'
       case 'Sourced':
         return 'bg-yellow-100 text-yellow-800'
       default:
@@ -220,8 +231,8 @@ export default function CandidatesPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">All Status</option>
-              <option value="Sourced">Sourced</option>
               <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Shortlisted">Shortlisted</option>
               <option value="Selected">Selected</option>
               <option value="Rejected">Rejected</option>
             </select>
@@ -264,8 +275,8 @@ export default function CandidatesPage() {
                                   </div>
                                 )}
                                 <div className="flex flex-col items-center">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
-                                    {candidate.status}
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(normalizeStatus(candidate.status))}`}>
+                                    {normalizeStatus(candidate.status)}
                                   </span>
                                   {candidate.stage && (
                                     <span className="mt-1 text-xs font-medium text-red-600 text-center block w-full">{candidate.stage}</span>
