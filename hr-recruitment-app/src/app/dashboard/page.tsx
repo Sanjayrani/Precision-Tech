@@ -98,7 +98,7 @@ export default function Dashboard() {
         if (candidatesData.success) {
           // Filter candidates with status "Interview Scheduled" (case sensitive)
           const scheduledCandidates = candidatesData.candidates?.filter((candidate: Candidate) => 
-            candidate.status === "Interview Scheduled"
+            candidate.status === "Interview Scheduled" || candidate.status === "Meeting Scheduled"
           ) || []
           setScheduledInterviews(scheduledCandidates)
         }
@@ -111,11 +111,13 @@ export default function Dashboard() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    const d = new Date(dateString)
+    // If parsing fails, show the raw value (e.g., meeting_date already human-formatted)
+    if (isNaN(d.getTime())) return String(dateString)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
   }
 
   const handleJobCreated = () => {
@@ -160,7 +162,7 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="flex justify-between items-center py-6">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">TalentFlow Dashboard</h1>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Hireverse Dashboard</h1>
                 <p className="text-gray-600 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
               </div>
             </div>
@@ -269,7 +271,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900">Active Jobs</h3>
                 <Link
-                  href="/jobs"
+                  href="/jobs?activeOnly=1"
                   className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
                 >
                   View all →

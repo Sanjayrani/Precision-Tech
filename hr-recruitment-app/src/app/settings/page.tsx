@@ -3,15 +3,9 @@
 import { useState } from 'react'
 import Layout from '@/components/Layout'
 import { 
-  Settings as SettingsIcon, 
   Linkedin, 
-  Save, 
   Check, 
-  X, 
   AlertCircle,
-  Shield,
-  Bell,
-  User,
   Globe
 } from 'lucide-react'
 
@@ -117,18 +111,7 @@ export default function SettingsPage() {
                   <Globe className="w-5 h-5 mr-3 text-indigo-600" />
                   Integrations
                 </a>
-                <a href="#profile" className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl">
-                  <User className="w-5 h-5 mr-3 text-gray-500" />
-                  Profile
-                </a>
-                <a href="#notifications" className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl">
-                  <Bell className="w-5 h-5 mr-3 text-gray-500" />
-                  Notifications
-                </a>
-                <a href="#security" className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-xl">
-                  <Shield className="w-5 h-5 mr-3 text-gray-500" />
-                  Security
-                </a>
+                {/* Hidden nav items removed per request: Profile, Notifications, Security */}
               </nav>
             </div>
 

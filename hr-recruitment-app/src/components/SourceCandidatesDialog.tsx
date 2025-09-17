@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Search, Target, Users, Sparkles } from 'lucide-react'
+import { X, Target, Users, Sparkles } from 'lucide-react'
 
 interface Job {
   id: string
@@ -121,13 +121,13 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
+                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Start Process Flow</h2>
                   <p className="text-gray-600">LinkedIn Sourcing Record Creator</p>
-                  <p className="text-sm text-purple-600 font-medium">Sourcing Record Manager</p>
+                  <p className="text-sm text-indigo-600 font-medium">Sourcing Record Manager</p>
                 </div>
               </div>
               <button
@@ -223,7 +223,7 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
                 <button
                   type="submit"
                   disabled={loading || fetchingJobs}
-                  className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium"
+                  className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium"
                 >
                   {loading ? (
                     <>
@@ -234,10 +234,7 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
                       Running...
                     </>
                   ) : (
-                    <>
-                      <Search className="w-5 h-5 mr-2" />
-                      Source
-                    </>
+                    <>Source</>
                   )}
                 </button>
               </div>

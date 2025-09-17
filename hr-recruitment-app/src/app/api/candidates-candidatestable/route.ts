@@ -5,10 +5,10 @@ export async function GET() {
   try {
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
     const tableId = process.env.NEXT_PUBLIC_CANDIDATES_TABLE_ID
+    const jobsTableId = process.env.NEXT_PUBLIC_JOBS_TABLE_ID
     const apiKey = process.env.NEXT_PUBLIC_SECRET_ID
 
     console.log("Fetching candidates from Wexa API...")
-    console.log("Project ID:", projectId)
     console.log("Candidates Table ID:", tableId)
 
     // Check if required parameters are set
@@ -31,13 +31,41 @@ export async function GET() {
     }
 
     const data = await response.json()
-    
-    console.log("Wexa API Response:", JSON.stringify(data, null, 2))
-    console.log("Candidates records count:", data.records?.length || 0)
+    const candidatesRecords = data.records || []
+    console.log("Candidates records count:", candidatesRecords.length)
+
+    // Optionally fetch jobs to enrich candidate's job info by job_id
+    const jobMap = new Map<string, { title: string; companyName: string }>()
+    if (jobsTableId) {
+      try {
+        const jobsRes = await fetch(`https://api.wexa.ai/storage/${projectId}/${jobsTableId}` , {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey as string,
+            'Content-Type': 'application/json',
+          },
+        })
+        if (jobsRes.ok) {
+          const jobsData = await jobsRes.json()
+          const jobs = jobsData.records || []
+          for (const rec of jobs) {
+            const jid = rec.job_id || rec._id
+            if (jid) {
+              jobMap.set(String(jid), {
+                title: rec.job_title || rec.Job_Title || rec.title || 'Job Title',
+                companyName: rec.company_name || rec.Company_Name || rec.companyName || 'Company'
+              })
+            }
+          }
+        }
+      } catch {
+        console.error('Failed to fetch jobs for candidate enrichment')
+      }
+    }
     
     // Map the records to match the candidates schema
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mappedCandidates = data.records?.map((record: any, index: number) => ({
+    const mappedCandidates = candidatesRecords?.map((record: any, index: number) => ({
       id: record.candidate_id || record._id || `candidate-${index + 1}`,
       candidateName: record.candidate_name || record.Candidate_Name || record.name || `Candidate ${index + 1}`,
       email: record.candidate_email || record.Candidate_Email || record.email || "",
@@ -96,7 +124,7 @@ export async function GET() {
       })(),
       followUpCount: record.follow_up_count || record.Follow_Up_Count || record.followUpAttempts || 0,
       candidateLocation: record.candidate_location || record.Candidate_Location || record.location || "",
-      lastContactedDate: record.last_contacted_date || record.Last_Contacted_Date || record.lastContact || new Date().toISOString(),
+      lastContactedDate: record.last_contacted_on || record.Last_Contacted_On || record.last_contacted_date || record.Last_Contacted_Date || record.lastContact || "",
       providerId: record.provider_id || record.Provider_ID || record.sourceProvider || "",
       linkedinMessageRead: record.linkedin_message_read || record.LinkedIn_Message_Read || record.linkedinReadStatus || false,
       jobId: record.Job_id || record.Job_ID || record.associatedJob || "",
@@ -109,13 +137,18 @@ export async function GET() {
       emailProviderId: record.email_provider_id || record.Email_Provider_ID || record.emailServiceProvider || "",
       subject: record.subject || record.Subject || record.messageSubject || "",
       status: record.status || record.Status || record.candidateStatus,
+      stage: record.stage || record.Stage || record.candidate_stage || record.Candidate_Stage || "",
       interviewDate: record.meeting_date || record.Meeting_Date || record.interviewDate || null,
-      createdAt: new Date().toISOString(),
-      job: {
-        id: record.Job_id || record.Job_ID || record.associatedJob || "",
-        title: record.jobs_mapped || record.Jobs_Mapped || "Job Title",
-        companyName: record.current_employer || record.Current_Employer || record.currentCompany || "Company"
-      }
+      createdAt: record.created_at || record.Created_At || record.createdAt || "",
+      job: (() => {
+        const jid = record.Job_id || record.Job_ID || record.associatedJob || ""
+        const fromMap = jid ? jobMap.get(String(jid)) : null
+        return {
+          id: jid,
+          title: fromMap?.title || record.jobs_mapped || record.Jobs_Mapped || "Job Title",
+          companyName: fromMap?.companyName || record.current_employer || record.Current_Employer || record.currentCompany || "Company"
+        }
+      })()
     })) || []
 
     return NextResponse.json({

@@ -1,5 +1,46 @@
 import { NextResponse } from "next/server"
 
+// Normalize various date formats to ISO string
+const normalizeDateToISO = (input: unknown): string => {
+  if (!input) return new Date().toISOString()
+  const raw = String(input).trim()
+  // Try native parse first
+  const native = new Date(raw)
+  if (!isNaN(native.getTime())) return native.toISOString()
+
+  // Try numeric timestamp
+  if (/^\d{10,13}$/.test(raw)) {
+    const ms = raw.length === 13 ? parseInt(raw, 10) : parseInt(raw, 10) * 1000
+    const d = new Date(ms)
+    if (!isNaN(d.getTime())) return d.toISOString()
+  }
+
+  // Try D/M/Y or D-M-Y
+  const dmy = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/)
+  if (dmy) {
+    const [, dStr, mStr, yStr] = dmy
+    const d = parseInt(dStr, 10)
+    const m = parseInt(mStr, 10) - 1
+    const yearNum = yStr.length === 2 ? parseInt(yStr, 10) : parseInt(yStr, 10)
+    const y = yStr.length === 2 ? (yearNum < 50 ? 2000 + yearNum : 1900 + yearNum) : yearNum
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) return date.toISOString()
+  }
+
+  // Try Y-M-D or Y/M/D
+  const ymd = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)
+  if (ymd) {
+    const y = parseInt(ymd[1], 10)
+    const m = parseInt(ymd[2], 10) - 1
+    const d = parseInt(ymd[3], 10)
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) return date.toISOString()
+  }
+
+  // Fallback: use today to avoid "Invalid Date" downstream
+  return new Date().toISOString()
+}
+
 export async function GET() {
   try {
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -43,8 +84,8 @@ export async function GET() {
       location: record.job_location || record.Job_Location || record.location || "Remote",
       companyName: record.company_name || record.Company_Name || record.companyName || "Company",
       companyDescription: record.company_description || record.Company_Description || record.companyDescription || "",
-      postedDate: record.posted_on || record.Posted_On || record.postedDate || new Date().toISOString(),
-      updatedDate: record.updated_on || record.Updated_On || record.updatedDate || new Date().toISOString(),
+      postedDate: normalizeDateToISO(record.posted_on || record.Posted_On || record.postedDate),
+      updatedDate: normalizeDateToISO(record.updated_on || record.Updated_On || record.updatedDate),
       mode: record.job_mode || record.Job_Mode || record.mode || "remote",
       recruiterName: record.recruiter_name || record.Recruiter_Name || record.recruiterName || "Recruiter",
       recruiterEmail: record.recruiter_email || record.Recruiter_Email || record.recruiterEmail || "",

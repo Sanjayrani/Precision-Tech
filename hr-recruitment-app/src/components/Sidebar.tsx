@@ -28,7 +28,7 @@ export default function Sidebar() {
     <div className="flex flex-col w-64 bg-white shadow-xl border-r border-gray-200">
       {/* Logo */}
       <div className="flex items-center justify-center h-16 px-4 bg-gradient-to-r from-indigo-600 to-purple-600">
-        <h1 className="text-xl font-bold text-white tracking-wide">TalentFlow</h1>
+        <h1 className="text-xl font-bold text-white tracking-wide">Hireverse</h1>
       </div>
 
       {/* Navigation */}
