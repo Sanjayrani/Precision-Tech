@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Mail, Phone, MapPin, Calendar, Star, ExternalLink, User, Briefcase, Award, BookOpen, MessageSquare, CheckCircle, Clock, Users } from 'lucide-react'
+import { X, Mail, Phone, MapPin, Calendar, Star, ExternalLink, User, Briefcase, Award, BookOpen, CheckCircle, Users } from 'lucide-react'
 
 interface Candidate {
   id: string
@@ -111,19 +111,7 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
     if (score >= 6) return 'text-yellow-600 bg-yellow-50 border-yellow-200'
     return 'text-red-600 bg-red-50 border-red-200'
   }
-
-  const getCommunicationStatus = (status: string) => {
-    switch (status) {
-      case 'replied':
-        return { color: 'text-green-600', icon: CheckCircle, text: 'Replied' }
-      case 'sent':
-        return { color: 'text-blue-600', icon: MessageSquare, text: 'Sent' }
-      case 'read':
-        return { color: 'text-purple-600', icon: CheckCircle, text: 'Read' }
-      default:
-        return { color: 'text-gray-600', icon: Clock, text: 'Pending' }
-    }
-  }
+  
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -314,56 +302,7 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
               </div>
             </div>
 
-            {/* Communication History */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-              <h3 className="font-semibold text-purple-900 mb-4 flex items-center">
-                <MessageSquare className="h-5 w-5 mr-2" />
-                Communication History
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">LinkedIn Messages</p>
-                  <p className="text-2xl font-bold text-gray-900">{candidate.linkedinMessages}</p>
-                  <div className="flex items-center mt-1">
-                    {(() => {
-                      const status = getCommunicationStatus(candidate.linkedinInmailMessageStatus)
-                      const IconComponent = status.icon
-                      return (
-                        <>
-                          <IconComponent className={`h-4 w-4 mr-1 ${status.color}`} />
-                          <span className={`text-sm ${status.color}`}>{status.text}</span>
-                        </>
-                      )
-                    })()}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Email Messages</p>
-                  <p className="text-2xl font-bold text-gray-900">{candidate.emailMessages}</p>
-                  <div className="flex items-center mt-1">
-                    {(() => {
-                      const status = getCommunicationStatus(candidate.emailStatus)
-                      const IconComponent = status.icon
-                      return (
-                        <>
-                          <IconComponent className={`h-4 w-4 mr-1 ${status.color}`} />
-                          <span className={`text-sm ${status.color}`}>{status.text}</span>
-                        </>
-                      )
-                    })()}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Follow-ups</p>
-                  <p className="text-2xl font-bold text-gray-900">{candidate.followUpCount}</p>
-                  {candidate.lastContactedDate && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Last: {formatDate(candidate.lastContactedDate)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Communication History removed as per request */}
 
             {/* Score Details */}
             {candidate.scoreDescription && (
