@@ -224,7 +224,7 @@ export default function CandidatesPage() {
               />
             </div>
             <select
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -312,11 +312,11 @@ export default function CandidatesPage() {
 
                             <div className="mt-2 flex items-center justify-between">
                               <div>
-                                <p className="text-sm text-gray-900 font-medium">
+                                <p className="text-sm font-bold text-black">
                                   Sourced For: {candidate.job.title} at {candidate.job.companyName}
                                 </p>
                                 {candidate.job?.id && (
-                                  <p className="text-xs text-gray-500 mt-1">Job ID: {candidate.job.id}</p>
+                                  <p className="text-xs font-bold text-black mt-1">Job ID: {candidate.job.id}</p>
                                 )}
                                 {candidate.currentJobTitle && candidate.currentEmployer && (
                                   <p className="text-sm text-gray-500">
