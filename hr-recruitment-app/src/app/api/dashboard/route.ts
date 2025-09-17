@@ -35,16 +35,8 @@ export async function GET() {
 
     const data = await response.json()
     
-    console.log("Wexa API Response:", JSON.stringify(data, null, 2))
+    // Keep logs minimal to avoid leaking data; only log counts
     console.log("Jobs records count:", data.records?.length || 0)
-    
-    // Debug: Log raw job statuses from Wexa
-    console.log("Raw job statuses from Wexa:", data.records?.map((record: any) => ({
-      title: record.job_title || record.Job_Title,
-      job_status: record.job_status,
-      Job_Status: record.Job_Status,
-      jobStatus: record.jobStatus
-    })))
     
     // Map the records to match the jobs schema
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
