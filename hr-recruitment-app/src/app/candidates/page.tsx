@@ -257,13 +257,20 @@ export default function CandidatesPage() {
                                 {candidate.candidateName}
                               </h3>
                               <div className="ml-2 flex items-center space-x-2">
-                                <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
-                                  <Star className="w-4 h-4 mr-1" />
-                                  <span className="text-sm font-medium">{candidate.candidateScore}/100</span>
+                                {candidate.candidateScore > 0 && (
+                                  <div className={`flex items-center ${getScoreColor(candidate.candidateScore)}`}>
+                                    <Star className="w-4 h-4 mr-1" />
+                                    <span className="text-sm font-medium">{candidate.candidateScore}/100</span>
+                                  </div>
+                                )}
+                                <div className="flex flex-col items-center">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
+                                    {candidate.status}
+                                  </span>
+                                  {candidate.stage && (
+                                    <span className="mt-1 text-xs font-medium text-red-600 text-center block w-full">{candidate.stage}</span>
+                                  )}
                                 </div>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
-                                  {candidate.status}
-                                </span>
                               </div>
                             </div>
                             

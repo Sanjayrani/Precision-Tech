@@ -1,21 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Layout from '@/components/Layout'
 import SourceCandidatesDialog from '@/components/SourceCandidatesDialog'
 import { Search, Target, Users, Plus, Sparkles } from 'lucide-react'
 
-interface Job {
-  id: string
-  title: string
-  companyName: string
-  location: string
-  mode: string
-}
+// Removed unused Job interface
 
 export default function SourceCandidatesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [didSource, setDidSource] = useState(false)
   const router = useRouter()
 
   const handleOpenDialog = () => {
@@ -24,13 +19,16 @@ export default function SourceCandidatesPage() {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
-    // After closing the form, navigate to Candidates tab
-    router.push('/candidates')
+    // Navigate to Candidates only if sourcing was initiated successfully
+    if (didSource) {
+      router.push('/candidates')
+      setDidSource(false)
+    }
   }
 
   const handleSourcingInitiated = () => {
-    // Optionally refresh data or show success message
-    console.log('Sourcing initiated successfully')
+    // Mark that sourcing ran successfully; navigation will occur when dialog closes
+    setDidSource(true)
   }
 
   return (
@@ -50,7 +48,7 @@ export default function SourceCandidatesPage() {
           <div className="bg-white shadow rounded-lg">
             <div className="p-8 text-center">
               <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mb-4">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">LinkedIn Candidate Sourcing</h2>
@@ -70,16 +68,16 @@ export default function SourceCandidatesPage() {
                   <h3 className="font-semibold text-green-900 mb-2">Set Quantity</h3>
                   <p className="text-sm text-gray-600">Specify how many candidates you want to source from LinkedIn</p>
                 </div>
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-100">
-                  <Search className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                  <h3 className="font-semibold text-purple-900 mb-2">Automated Sourcing</h3>
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-100">
+                  <Search className="w-8 h-8 text-indigo-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-indigo-900 mb-2">Automated Sourcing</h3>
                   <p className="text-sm text-gray-600">Let our process flow find and engage candidates automatically</p>
                 </div>
               </div>
 
               <button
                 onClick={handleOpenDialog}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center mx-auto transition-all shadow-lg hover:shadow-xl font-medium"
+                className="bg-indigo-600 text-white px-8 py-4 rounded-lg hover:bg-indigo-700 flex items-center mx-auto transition-all shadow-lg hover:shadow-xl font-medium"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Start LinkedIn Sourcing
