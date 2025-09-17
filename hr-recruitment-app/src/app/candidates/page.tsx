@@ -218,7 +218,7 @@ export default function CandidatesPage() {
               <input
                 type="text"
                 placeholder="Search candidates by name, email, or skills..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
