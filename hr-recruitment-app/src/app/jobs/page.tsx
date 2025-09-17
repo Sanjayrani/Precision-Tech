@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import Layout from '@/components/Layout'
 import JobDetailsDialog from '@/components/JobDetailsDialog'
 import CreateJobDialog from '@/components/CreateJobDialog'
@@ -20,6 +20,7 @@ interface Job {
   companyDescription: string
   postedDate: string
   updatedDate: string
+  jobStatus?: string
   isActive: boolean
   _count: {
     candidates: number
@@ -31,7 +32,7 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  // Total pages derived from filtered results; not tracked separately to avoid lints
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -47,7 +48,6 @@ export default function JobsPage() {
       if (response.ok) {
         const data = await response.json()
         setJobs(data.jobs || [])
-        setTotalPages(Math.ceil((data.totalCount || 0) / 10))
       }
     } catch (error) {
       console.error('Error fetching jobs:', error)
@@ -56,16 +56,20 @@ export default function JobsPage() {
     }
   }
 
-  // Filter jobs based on search term
+  // Filter jobs based on search term and optional active-only query param
+  const searchParams = useSearchParams()
+  const activeOnly = searchParams.get('activeOnly') === '1'
+
   const filteredJobs = jobs.filter(job => {
-    if (!search) return true
     const searchLower = search.toLowerCase()
-    return (
+    const matchesSearch = !search || (
       job.title.toLowerCase().includes(searchLower) ||
       job.companyName.toLowerCase().includes(searchLower) ||
       job.location.toLowerCase().includes(searchLower) ||
       job.description.toLowerCase().includes(searchLower)
     )
+    const matchesActive = !activeOnly || job.jobStatus === 'Active'
+    return matchesSearch && matchesActive
   })
 
   // Paginate filtered jobs
@@ -122,6 +126,22 @@ export default function JobsPage() {
         return 'bg-blue-100 text-blue-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return 'bg-emerald-100 text-emerald-800'
+      case 'Closed':
+      case 'Inactive':
+        return 'bg-red-100 text-red-800'
+      case 'On Hold':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'Draft':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-indigo-100 text-indigo-800'
     }
   }
 
@@ -194,10 +214,15 @@ export default function JobsPage() {
                               <h3 className="text-lg font-medium text-indigo-600 truncate">
                                 {job.title}
                               </h3>
-                              <div className="ml-2 flex-shrink-0 flex">
+                              <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getModeColor(job.mode)}`}>
                                   {job.mode}
                                 </span>
+                                {job.jobStatus && (
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.jobStatus)}`}>
+                                    {job.jobStatus}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="mt-2 sm:flex sm:justify-between">

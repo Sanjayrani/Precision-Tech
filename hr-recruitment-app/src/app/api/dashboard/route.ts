@@ -80,7 +80,7 @@ export async function GET() {
     // Get active jobs (where jobStatus is "Active" - case sensitive)
     const activeJobs = allJobs.filter(job => 
       job.jobStatus === "Active"
-    ).slice(0, 5) // Limit to 5 for dashboard display
+    ).slice(0, 2) // Limit to 2 for dashboard display
     
     console.log("Active jobs found:", activeJobs.length)
     

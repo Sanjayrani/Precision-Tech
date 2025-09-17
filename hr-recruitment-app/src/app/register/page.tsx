@@ -56,7 +56,7 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold text-white">T</span>
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            TalentFlow
+            Hireverse
           </h1>
           <p className="text-gray-600 text-base">
             Create your account to get started
@@ -176,7 +176,7 @@ export default function RegisterPage() {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-xs text-gray-500">
-            © 2024 TalentFlow. All rights reserved.
+            © 2024 Hireverse. All rights reserved.
           </p>
         </div>
       </div>
