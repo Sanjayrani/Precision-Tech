@@ -82,11 +82,9 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
       const data = await response.json()
 
       if (response.ok && data.success) {
-        setSuccess(`Successfully initiated LinkedIn sourcing for ${sourcingData.candidates_required} candidates!`)
-        setTimeout(() => {
-          onSourcingInitiated()
-          onClose()
-        }, 1500)
+        // Notify parent immediately to navigate to Candidates
+        onSourcingInitiated()
+        return
       } else {
         setError(data.error || 'Failed to initiate candidate sourcing')
       }

@@ -10,7 +10,6 @@ import { Search, Target, Users, Plus, Sparkles } from 'lucide-react'
 
 export default function SourceCandidatesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [didSource, setDidSource] = useState(false)
   const router = useRouter()
 
   const handleOpenDialog = () => {
@@ -19,16 +18,12 @@ export default function SourceCandidatesPage() {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
-    // Navigate to Candidates only if sourcing was initiated successfully
-    if (didSource) {
-      router.push('/candidates')
-      setDidSource(false)
-    }
   }
 
   const handleSourcingInitiated = () => {
-    // Mark that sourcing ran successfully; navigation will occur when dialog closes
-    setDidSource(true)
+    // Close the dialog and navigate immediately to Candidates after successful sourcing
+    setIsDialogOpen(false)
+    router.push('/candidates')
   }
 
   return (
