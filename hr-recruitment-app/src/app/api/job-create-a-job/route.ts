@@ -12,7 +12,16 @@ export async function POST(request: Request) {
       job_mode, 
       recruiter_name, 
       recruiter_email, 
-      recruiter_designation 
+      recruiter_designation,
+      // Weights
+      technical_skills_weight,
+      soft_skills_weight,
+      open_to_work_weight,
+      job_match_weight,
+      location_match_weight,
+      experience_weight,
+      education_weight,
+      custom_weights
     } = body
 
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -45,7 +54,18 @@ Company Name : ${company_name}
 Company Description : ${company_description || "No company description provided"}
 Recruiter Name : ${recruiter_name}
 Recruiter Email : ${recruiter_email}
-Recruiter Designation : ${recruiter_designation}`,
+Recruiter Designation : ${recruiter_designation}
+
+Candidate Evaluation Weights:
+- Technical Skills: ${technical_skills_weight || 35}%
+- Soft Skills: ${soft_skills_weight || 15}%
+- Open to Work: ${open_to_work_weight || 5}%
+- Job Match: ${job_match_weight || 15}%
+- Location Match: ${location_match_weight || 5}%
+- Experience: ${experience_weight || 15}%
+- Education: ${education_weight || 10}%${custom_weights && custom_weights.length > 0 ? `
+Custom Weights:
+${custom_weights.map((weight: any) => `- ${weight.name}: ${weight.weight}%`).join('\n')}` : ''}`,
       input_variables: {
         job_title: job_title,
         job_description: job_description,
@@ -56,6 +76,15 @@ Recruiter Designation : ${recruiter_designation}`,
         recruiter_name: recruiter_name,
         recruiter_email: recruiter_email,
         recruiter_designation: recruiter_designation,
+        // Weights
+        technical_skills_weight: technical_skills_weight || 35,
+        soft_skills_weight: soft_skills_weight || 15,
+        open_to_work_weight: open_to_work_weight || 5,
+        job_match_weight: job_match_weight || 15,
+        location_match_weight: location_match_weight || 5,
+        experience_weight: experience_weight || 15,
+        education_weight: education_weight || 10,
+        custom_weights: custom_weights || [],
         action: "create_job",
         timestamp: new Date().toISOString(),
         created_by: "system"
@@ -109,6 +138,15 @@ Recruiter Designation : ${recruiter_designation}`,
         recruiter_name,
         recruiter_email,
         recruiter_designation,
+        // Weights
+        technical_skills_weight: technical_skills_weight || 35,
+        soft_skills_weight: soft_skills_weight || 15,
+        open_to_work_weight: open_to_work_weight || 5,
+        job_match_weight: job_match_weight || 15,
+        location_match_weight: location_match_weight || 5,
+        experience_weight: experience_weight || 15,
+        education_weight: education_weight || 10,
+        custom_weights: custom_weights || [],
         postedDate: new Date().toISOString(),
         isActive: true
       }
