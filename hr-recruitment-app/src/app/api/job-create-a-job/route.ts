@@ -65,7 +65,7 @@ Candidate Evaluation Weights:
 - Experience: ${experience_weight || 15}%
 - Education: ${education_weight || 10}%${custom_weights && custom_weights.length > 0 ? `
 Custom Weights:
-${custom_weights.map((weight: any) => `- ${weight.name}: ${weight.weight}%`).join('\n')}` : ''}`,
+${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.name}: ${weight.weight}%`).join('\n')}` : ''}`,
       input_variables: {
         job_title: job_title,
         job_description: job_description,

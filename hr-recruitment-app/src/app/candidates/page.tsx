@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
@@ -58,7 +58,7 @@ interface Candidate {
   }
 }
 
-export default function CandidatesPage() {
+function CandidatesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [candidates, setCandidates] = useState<Candidate[]>([])
@@ -425,5 +425,22 @@ export default function CandidatesPage() {
         onClose={handleCloseDialog}
       />
     </Layout>
+  )
+}
+
+export default function CandidatesPage() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading candidates...</p>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <CandidatesPageContent />
+    </Suspense>
   )
 }

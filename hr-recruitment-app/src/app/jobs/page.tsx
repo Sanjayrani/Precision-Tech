@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Layout from '@/components/Layout'
 import JobDetailsDialog from '@/components/JobDetailsDialog'
 import CreateJobDialog from '@/components/CreateJobDialog'
-import { Search, Plus, MapPin, Calendar, Users } from 'lucide-react'
+import { Search, Plus, MapPin, Calendar, Users, Target } from 'lucide-react'
 
 interface Job {
   id: string
@@ -22,6 +22,16 @@ interface Job {
   updatedDate: string
   jobStatus?: string
   isActive: boolean
+  weights?: {
+    technical_skills_weight?: number
+    soft_skills_weight?: number
+    open_to_work_weight?: number
+    job_match_weight?: number
+    location_match_weight?: number
+    experience_weight?: number
+    education_weight?: number
+    custom_weights?: Array<{name: string, weight: number}>
+  } | null
   _count: {
     candidates: number
   }
@@ -272,6 +282,67 @@ function JobsPageContent() {
                                 </span>
                               </div>
                             </div>
+                            
+                            {/* Weights Display */}
+                            {job.weights && (
+                              <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-100">
+                                <div className="flex items-center mb-2">
+                                  <Target className="h-4 w-4 text-indigo-600 mr-2" />
+                                  <span className="text-sm font-medium text-indigo-900">Evaluation Weights</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {job.weights.technical_skills_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Tech: {job.weights.technical_skills_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.experience_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Exp: {job.weights.experience_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.soft_skills_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Soft: {job.weights.soft_skills_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.education_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Edu: {job.weights.education_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.job_match_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Match: {job.weights.job_match_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.location_match_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Loc: {job.weights.location_match_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.open_to_work_weight && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                      Open: {job.weights.open_to_work_weight}
+                                    </span>
+                                  )}
+                                  {job.weights.custom_weights && job.weights.custom_weights.length > 0 && (
+                                    <>
+                                      {job.weights.custom_weights.slice(0, 2).map((customWeight, index) => (
+                                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                          {customWeight.name}: {customWeight.weight}
+                                        </span>
+                                      ))}
+                                      {job.weights.custom_weights.length > 2 && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                          +{job.weights.custom_weights.length - 2} more
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

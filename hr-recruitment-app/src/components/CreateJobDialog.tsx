@@ -278,7 +278,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       // Get form data using FormData
       const formData = new FormData(formRef.current)
       // Build weights object dynamically based on active weights
-      const weights: any = {}
+      const weights: Record<string, number> = {}
       
       // Add active standard weights
       if (activeStandardWeights.has('technical_skills_weight')) {
@@ -607,7 +607,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="35"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -641,7 +641,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="15"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -675,7 +675,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="5"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -709,7 +709,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="15"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -743,7 +743,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="5"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -777,7 +777,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="15"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -811,7 +811,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           defaultValue="10"
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   )}
@@ -826,7 +826,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl font-bold text-orange-600">{totalWeight}</span>
-                      <span className="text-orange-600 font-medium">%</span>
+                      
                     </div>
                   </div>
                   
@@ -945,7 +945,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                     </div>
                     <div>
                       <label htmlFor="custom_weight_value" className="block text-sm font-medium text-gray-700 mb-2">
-                        Weight (%)
+                        Weight
                       </label>
                       <div className="flex items-center space-x-2">
                         <input
@@ -957,7 +957,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                           onChange={(e) => setNewCustomWeight({...newCustomWeight, weight: parseInt(e.target.value) || 0})}
                           className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 text-center"
                         />
-                        <span className="text-sm text-gray-500">%</span>
+                        
                       </div>
                     </div>
                   </div>
@@ -998,7 +998,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                               onChange={(e) => updateCustomWeight(customWeight.id, 'weight', parseInt(e.target.value) || 0)}
                               className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 text-center"
                             />
-                            <span className="text-sm text-gray-500">%</span>
+                            
                           </div>
                         </div>
                         <button
