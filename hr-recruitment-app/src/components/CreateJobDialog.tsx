@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Briefcase, Building, User } from 'lucide-react'
+import { X, Briefcase, Building, User, Target, BarChart3, Plus, Trash2 } from 'lucide-react'
 
 interface CreateJobDialogProps {
   isOpen: boolean
@@ -16,6 +16,19 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [totalWeight, setTotalWeight] = useState(100)
+  // Custom weights removed
+  const [activeStandardWeights, setActiveStandardWeights] = useState<Set<string>>(new Set([
+    'technical_skills_weight',
+    'soft_skills_weight',
+    'open_to_work_weight',
+    'job_match_weight',
+    'location_match_weight',
+    'experience_weight',
+    'education_weight'
+  ]))
+  const [autoAdjustEnabled, setAutoAdjustEnabled] = useState(true)
+  const [weightNotification, setWeightNotification] = useState<{type: 'info' | 'warning' | 'success', message: string} | null>(null)
 
   // Clear form when dialog opens
   useEffect(() => {
@@ -23,8 +36,169 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       formRef.current.reset()
       setError('')
       setSuccess('')
+      setTotalWeight(100)
+      
+      setActiveStandardWeights(new Set([
+        'technical_skills_weight',
+        'soft_skills_weight',
+        'open_to_work_weight',
+        'job_match_weight',
+        'location_match_weight',
+        'experience_weight',
+        'education_weight'
+      ]))
+      setWeightNotification(null)
     }
   }, [isOpen])
+
+  // Function to calculate total weight
+  const calculateTotalWeight = () => {
+    if (!formRef.current) return
+    
+    const standardTotal = Array.from(activeStandardWeights).reduce((sum, inputName) => {
+      const input = formRef.current?.querySelector(`[name="${inputName}"]`) as HTMLInputElement
+      return sum + (parseInt(input?.value) || 0)
+    }, 0)
+    
+    const newTotal = standardTotal
+    setTotalWeight(newTotal)
+    
+    // Auto-adjust if enabled and total exceeds 100%
+    if (autoAdjustEnabled && newTotal > 100) {
+      autoAdjustWeights(newTotal)
+    } else if (newTotal > 100) {
+      setWeightNotification({
+        type: 'warning',
+        message: `Total weight is ${newTotal}%. Please reduce weights to reach 100%.`
+      })
+    } else if (newTotal < 100) {
+      setWeightNotification({
+        type: 'info',
+        message: `${100 - newTotal}% remaining to reach 100%.`
+      })
+    } else {
+      setWeightNotification({
+        type: 'success',
+        message: 'Perfect! All weights add up to 100%.'
+      })
+    }
+  }
+
+  // Auto-adjust weights when total exceeds 100%
+  const autoAdjustWeights = (currentTotal: number) => {
+    const excess = currentTotal - 100
+    const totalWeights = Array.from(activeStandardWeights).length
+    
+    if (totalWeights === 0) return
+    
+    const reductionPerWeight = Math.ceil(excess / totalWeights)
+    
+    // Adjust standard weights
+    Array.from(activeStandardWeights).forEach(weightName => {
+      const input = formRef.current?.querySelector(`[name="${weightName}"]`) as HTMLInputElement
+      if (input) {
+        const currentValue = parseInt(input.value) || 0
+        const newValue = Math.max(0, currentValue - reductionPerWeight)
+        input.value = newValue.toString()
+      }
+    })
+    
+    // Custom weights removed
+    
+    setWeightNotification({
+      type: 'info',
+      message: `Auto-adjusted weights to reach 100%. Each weight was reduced by ${reductionPerWeight}%.`
+    })
+    
+    // Recalculate after adjustment
+    setTimeout(calculateTotalWeight, 100)
+  }
+
+  // Balance weights proportionally to reach exactly 100%
+  const balanceWeights = () => {
+    const standardTotal = Array.from(activeStandardWeights).reduce((sum, inputName) => {
+      const input = formRef.current?.querySelector(`[name="${inputName}"]`) as HTMLInputElement
+      return sum + (parseInt(input?.value) || 0)
+    }, 0)
+    
+    const currentTotal = standardTotal
+    
+    if (currentTotal === 0) return
+    
+    const scaleFactor = 100 / currentTotal
+    
+    // Scale standard weights proportionally
+    Array.from(activeStandardWeights).forEach(weightName => {
+      const input = formRef.current?.querySelector(`[name="${weightName}"]`) as HTMLInputElement
+      if (input) {
+        const currentValue = parseInt(input.value) || 0
+        const newValue = Math.round(currentValue * scaleFactor)
+        input.value = newValue.toString()
+      }
+    })
+    
+    // Scale custom weights proportionally
+    // Custom weights removed
+    
+    setWeightNotification({
+      type: 'success',
+      message: 'Weights balanced proportionally to reach exactly 100%.'
+    })
+    
+    // Recalculate after balancing
+    setTimeout(calculateTotalWeight, 100)
+  }
+
+  // Get smart suggestions for weight distribution
+  const getWeightSuggestions = () => {
+    const activeCount = Array.from(activeStandardWeights).length
+    if (activeCount === 0) return null
+    
+    const suggestedWeight = Math.floor(100 / activeCount)
+    const remainder = 100 % activeCount
+    
+    return {
+      baseWeight: suggestedWeight,
+      remainder: remainder,
+      suggestion: `For equal distribution, consider ${suggestedWeight}% per weight${remainder > 0 ? ` (with ${remainder}% extra to distribute)` : ''}.`
+    }
+  }
+
+  // Add event listeners for weight inputs
+  useEffect(() => {
+    if (isOpen && formRef.current) {
+      const weightInputs = formRef.current.querySelectorAll('input[name$="_weight"]')
+      weightInputs.forEach(input => {
+        input.addEventListener('input', calculateTotalWeight)
+        input.addEventListener('change', calculateTotalWeight)
+      })
+      
+      return () => {
+        weightInputs.forEach(input => {
+          input.removeEventListener('input', calculateTotalWeight)
+          input.removeEventListener('change', calculateTotalWeight)
+        })
+      }
+    }
+  }, [isOpen])
+
+  // Custom weights removed
+
+  const removeStandardWeight = (weightName: string) => {
+    const newActiveWeights = new Set(activeStandardWeights)
+    newActiveWeights.delete(weightName)
+    setActiveStandardWeights(newActiveWeights)
+    // Recalculate total after a short delay to ensure state is updated
+    setTimeout(calculateTotalWeight, 100)
+  }
+
+  const addStandardWeight = (weightName: string) => {
+    const newActiveWeights = new Set(activeStandardWeights)
+    newActiveWeights.add(weightName)
+    setActiveStandardWeights(newActiveWeights)
+    // Recalculate total after a short delay to ensure state is updated
+    setTimeout(calculateTotalWeight, 100)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,9 +212,48 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       return
     }
 
+    // Validate weights sum to 100
+    if (totalWeight !== 100) {
+      if (autoAdjustEnabled) {
+        // Auto-adjust if enabled
+        balanceWeights()
+        setError('Weights have been automatically balanced to 100%. Please review and submit again.')
+      } else {
+        setError(`Weights must sum to exactly 100%. Current total: ${totalWeight}%. Use the "Balance to 100%" button to fix automatically.`)
+      }
+      setLoading(false)
+      return
+    }
+
     try {
       // Get form data using FormData
       const formData = new FormData(formRef.current)
+      // Build weights object dynamically based on active weights
+      const weights: Record<string, number> = {}
+      
+      // Add active standard weights
+      if (activeStandardWeights.has('technical_skills_weight')) {
+        weights.technical_skills_weight = parseInt(formData.get('technical_skills_weight') as string) || 35
+      }
+      if (activeStandardWeights.has('soft_skills_weight')) {
+        weights.soft_skills_weight = parseInt(formData.get('soft_skills_weight') as string) || 15
+      }
+      if (activeStandardWeights.has('open_to_work_weight')) {
+        weights.open_to_work_weight = parseInt(formData.get('open_to_work_weight') as string) || 5
+      }
+      if (activeStandardWeights.has('job_match_weight')) {
+        weights.job_match_weight = parseInt(formData.get('job_match_weight') as string) || 15
+      }
+      if (activeStandardWeights.has('location_match_weight')) {
+        weights.location_match_weight = parseInt(formData.get('location_match_weight') as string) || 5
+      }
+      if (activeStandardWeights.has('experience_weight')) {
+        weights.experience_weight = parseInt(formData.get('experience_weight') as string) || 15
+      }
+      if (activeStandardWeights.has('education_weight')) {
+        weights.education_weight = parseInt(formData.get('education_weight') as string) || 10
+      }
+
       const jobData = {
         job_title: formData.get('job_title') as string,
         job_description: formData.get('job_description') as string,
@@ -51,6 +264,9 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
         recruiter_name: formData.get('recruiter_name') as string,
         recruiter_email: formData.get('recruiter_email') as string,
         recruiter_designation: formData.get('recruiter_designation') as string,
+        // Active standard weights
+        ...weights,
+        threshold_score: parseInt(formData.get('threshold_score') as string) || 0,
       }
 
       console.log('Submitting job data:', jobData)
@@ -300,6 +516,375 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                   </div>
                 </div>
               </div>
+
+              {/* Weights Section */}
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+                <h3 className="font-semibold text-orange-900 mb-4 flex items-center">
+                  <Target className="h-5 w-5 mr-2" />
+                  Candidate Evaluation Weights
+                </h3>
+                <p className="text-sm text-orange-700 mb-6">
+                  Set the importance weights for different evaluation criteria. Total must equal 100%.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Technical Skills */}
+                  {activeStandardWeights.has('technical_skills_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="technical_skills_weight" className="text-sm font-medium text-gray-700">
+                          Technical Skills
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">High Impact</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('technical_skills_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="technical_skills_weight"
+                          name="technical_skills_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="35"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Soft Skills */}
+                  {activeStandardWeights.has('soft_skills_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="soft_skills_weight" className="text-sm font-medium text-gray-700">
+                          Soft Skills
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Team Fit</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('soft_skills_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="soft_skills_weight"
+                          name="soft_skills_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="15"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Open to Work */}
+                  {activeStandardWeights.has('open_to_work_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="open_to_work_weight" className="text-sm font-medium text-gray-700">
+                          Open to Work
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Availability</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('open_to_work_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="open_to_work_weight"
+                          name="open_to_work_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="5"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Job Match */}
+                  {activeStandardWeights.has('job_match_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="job_match_weight" className="text-sm font-medium text-gray-700">
+                          Job Match
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Role Alignment</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('job_match_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="job_match_weight"
+                          name="job_match_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="15"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location Match */}
+                  {activeStandardWeights.has('location_match_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="location_match_weight" className="text-sm font-medium text-gray-700">
+                          Location Match
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Geographic</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('location_match_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="location_match_weight"
+                          name="location_match_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="5"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {activeStandardWeights.has('experience_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="experience_weight" className="text-sm font-medium text-gray-700">
+                          Experience
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Years & Quality</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('experience_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="experience_weight"
+                          name="experience_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="15"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {activeStandardWeights.has('education_weight') && (
+                    <div className="bg-white rounded-lg p-4 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label htmlFor="education_weight" className="text-sm font-medium text-gray-700">
+                          Education
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Academic Background</span>
+                          <button
+                            type="button"
+                            onClick={() => removeStandardWeight('education_weight')}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Remove this weight"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          id="education_weight"
+                          name="education_weight"
+                          min="0"
+                          max="100"
+                          defaultValue="10"
+                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                        />
+                        
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Weight Display */}
+                <div className="mt-6 bg-gradient-to-r from-orange-100 to-amber-100 rounded-lg p-4 border border-orange-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <BarChart3 className="h-5 w-5 text-orange-600 mr-2" />
+                      <span className="font-medium text-orange-800">Total Weight</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold text-orange-600">{totalWeight}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Threshold Score */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1">
+                      <label htmlFor="threshold_score" className="block text-sm font-medium text-gray-700 mb-2">
+                        Threshold Score
+                      </label>
+                      <input
+                        type="number"
+                        id="threshold_score"
+                        name="threshold_score"
+                        min="0"
+                        max="100"
+                        defaultValue="70"
+                        className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Weight Notification */}
+                  {weightNotification && (
+                    <div className={`mt-3 p-3 rounded-lg ${
+                      weightNotification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' :
+                      weightNotification.type === 'warning' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
+                      'bg-blue-50 border border-blue-200 text-blue-700'
+                    }`}>
+                      <div className="flex items-center">
+                        {weightNotification.type === 'success' && <span className="text-green-600 mr-2">✓</span>}
+                        {weightNotification.type === 'warning' && <span className="text-yellow-600 mr-2">⚠</span>}
+                        {weightNotification.type === 'info' && <span className="text-blue-600 mr-2">ℹ</span>}
+                        <span className="text-sm">{weightNotification.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Smart Suggestions */}
+                  {getWeightSuggestions() && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start">
+                        <span className="text-blue-600 mr-2 mt-0.5">💡</span>
+                        <div>
+                          <span className="text-sm text-blue-700 font-medium">Smart Suggestion:</span>
+                          <p className="text-sm text-blue-600 mt-1">{getWeightSuggestions()?.suggestion}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Auto-adjustment Controls */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={autoAdjustEnabled}
+                          onChange={(e) => setAutoAdjustEnabled(e.target.checked)}
+                          className="mr-2 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-orange-700">Auto-adjust when over 100%</span>
+                      </label>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={balanceWeights}
+                        disabled={totalWeight === 100}
+                        className="px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        Balance to 100%
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Removed Weights Section */}
+                {Array.from(activeStandardWeights).length < 7 && (
+                  <div className="mt-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Back Removed Weights
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { name: 'technical_skills_weight', label: 'Technical Skills' },
+                        { name: 'soft_skills_weight', label: 'Soft Skills' },
+                        { name: 'open_to_work_weight', label: 'Open to Work' },
+                        { name: 'job_match_weight', label: 'Job Match' },
+                        { name: 'location_match_weight', label: 'Location Match' },
+                        { name: 'experience_weight', label: 'Experience' },
+                        { name: 'education_weight', label: 'Education' }
+                      ].filter(weight => !activeStandardWeights.has(weight.name)).map(weight => (
+                        <button
+                          key={weight.name}
+                          type="button"
+                          onClick={() => addStandardWeight(weight.name)}
+                          className="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 flex items-center"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {weight.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Weights Section removed as per requirement */}
 
               {/* Footer */}
               <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">

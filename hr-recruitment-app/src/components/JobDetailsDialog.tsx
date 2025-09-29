@@ -1,6 +1,6 @@
 'use client'
 
-import { X, MapPin, Calendar, Users, Mail, Briefcase, Building, Clock } from 'lucide-react'
+import { X, MapPin, Calendar, Users, Mail, Briefcase, Building, Clock, Target } from 'lucide-react'
 
 interface Job {
   id: string
@@ -16,6 +16,16 @@ interface Job {
   postedDate: string
   updatedDate: string
   isActive: boolean
+  weights?: {
+    technical_skills_weight?: number
+    soft_skills_weight?: number
+    open_to_work_weight?: number
+    job_match_weight?: number
+    location_match_weight?: number
+    experience_weight?: number
+    education_weight?: number
+    custom_weights?: Array<{name: string, weight: number}>
+  } | null
   _count: {
     candidates: number
   }
@@ -166,6 +176,62 @@ export default function JobDetailsDialog({ job, isOpen, onClose }: JobDetailsDia
                 </div>
               </div>
             </div>
+
+            {/* Evaluation Weights */}
+            {job.weights && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                <h3 className="font-semibold text-indigo-900 mb-3 flex items-center">
+                  <Target className="h-5 w-5 mr-2" />
+                  Candidate Evaluation Weights
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {job.weights.technical_skills_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      technicalSkills : <span className="ml-1 font-bold">{job.weights.technical_skills_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.soft_skills_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      softSkills : <span className="ml-1 font-bold">{job.weights.soft_skills_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.experience_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      experience : <span className="ml-1 font-bold">{job.weights.experience_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.education_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      education : <span className="ml-1 font-bold">{job.weights.education_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.job_match_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      jobMatch : <span className="ml-1 font-bold">{job.weights.job_match_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.location_match_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      locationMatch : <span className="ml-1 font-bold">{job.weights.location_match_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.open_to_work_weight !== undefined && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                      openToWork : <span className="ml-1 font-bold">{job.weights.open_to_work_weight}</span>
+                    </span>
+                  )}
+                  {job.weights.custom_weights && job.weights.custom_weights.length > 0 && (
+                    <>
+                      {job.weights.custom_weights.map((customWeight, index) => (
+                        <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-indigo-700 border border-indigo-200 shadow-sm">
+                          {customWeight.name} : <span className="ml-1 font-bold">{customWeight.weight}</span>
+                        </span>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Job Timeline */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

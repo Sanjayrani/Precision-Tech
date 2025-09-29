@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { htmlToPlainText } from "@/lib/formatHtml"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const pageParam = parseInt(searchParams.get('page') || '1', 10)
+    const limitParam = parseInt(searchParams.get('limit') || '10', 10)
+    const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+    const limit = Number.isNaN(limitParam) || limitParam < 1 ? 10 : Math.min(limitParam, 100)
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
     const tableId = process.env.NEXT_PUBLIC_CANDIDATES_TABLE_ID
     const jobsTableId = process.env.NEXT_PUBLIC_JOBS_TABLE_ID
@@ -16,23 +21,81 @@ export async function GET() {
       throw new Error("Missing required parameters")
     }
 
-    const url = `https://api.wexa.ai/storage/${projectId}/${tableId}?page=1&query=&sort=1&sort_key=_id`
+    // Always fetch from WEXA in large pages (up to 100) and aggregate, then
+    // slice according to the requested page/limit to guarantee consistent
+    // pagination regardless of WEXA's paging semantics.
+    const wexaFetchLimit = 100
 
-    const response = await fetch(url, {
+    const buildUrl = (p: number, lim: number) => `https://api.wexa.ai/storage/${projectId}/${tableId}?page=${p}&limit=${lim}&query=&sort=1&sort_key=_id`
+
+    // Fetch first page to discover total count
+    const firstUrl = buildUrl(1, wexaFetchLimit)
+    console.log('WEXA API first page URL:', firstUrl)
+    const firstRes = await fetch(firstUrl, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey,
         'Content-Type': 'application/json',
       },
     })
+    if (!firstRes.ok) {
+      throw new Error(`Wexa AI API error: ${firstRes.status} ${firstRes.statusText}`)
+    }
+    const firstData = await firstRes.json()
+    const firstRecords = firstData.records || []
+    const totalCountAll = firstData.total_count || firstData.totalCount || firstRecords.length
+    // Derive the real page size used by WEXA (some backends cap or ignore limit)
+    const firstPageSize = Array.isArray(firstRecords) ? firstRecords.length : 0
+    const effectivePageSize = Math.max(1, firstPageSize || wexaFetchLimit)
+    const totalWexaPages = Math.max(1, Math.ceil(totalCountAll / effectivePageSize))
+    console.log('WEXA API first fetch:', {
+      firstRecords: firstRecords.length,
+      totalCountAll,
+      totalWexaPages,
+      requestedLimit: wexaFetchLimit,
+      effectivePageSize,
+    })
 
-    if (!response.ok) {
-      throw new Error(`Wexa AI API error: ${response.status} ${response.statusText}`)
+    let allRecords = firstRecords
+    if (totalWexaPages > 1) {
+      const pageNumbers: number[] = []
+      for (let p = 2; p <= totalWexaPages; p++) pageNumbers.push(p)
+      console.log('Fetching additional WEXA pages:', pageNumbers)
+      const responses = await Promise.all(
+        pageNumbers.map(async (p) => {
+          const url = buildUrl(p, wexaFetchLimit)
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'x-api-key': apiKey,
+              'Content-Type': 'application/json',
+            },
+          })
+          if (!res.ok) {
+            console.error('WEXA page fetch failed:', p, res.status, res.statusText)
+            return { records: [] as unknown[] }
+          }
+          try {
+            const json = await res.json()
+            return { records: json.records || [] }
+          } catch {
+            return { records: [] as unknown[] }
+          }
+        })
+      )
+      for (const r of responses) {
+        allRecords = allRecords.concat(r.records as unknown[])
+      }
     }
 
-    const data = await response.json()
-    const candidatesRecords = data.records || []
-    console.log("Candidates records count:", candidatesRecords.length)
+    // Safety: if provider returns more than reported, trim to totalCountAll
+    if (allRecords.length > totalCountAll) {
+      allRecords = allRecords.slice(0, totalCountAll)
+    }
+
+    // Final safety: do not exceed reported total
+    const candidatesRecords = allRecords.slice(0, totalCountAll)
+    console.log('Aggregated WEXA records total:', candidatesRecords.length)
 
     // Optionally fetch jobs to enrich candidate's job info by job_id
     const jobMap = new Map<string, { title: string; companyName: string }>()
@@ -78,6 +141,41 @@ export async function GET() {
       miscellaneousInformation: String(record.miscellaneous_information || record.Miscellaneous_Information || record.additionalInfo || ""),
       candidateScore: record.candidate_score || record.Candidate_Score || record.score || 0,
       scoreDescription: String(record.score_description || record.Score_Description || record.scoreDetails || ""),
+      // Normalize score_breakdown into an array of display-friendly strings
+      score_breakdown: (() => {
+        const raw = (record.score_breakdown ?? record.Score_Breakdown ?? record.scoreBreakdown ?? record.ScoreBreakDown) as unknown
+        // Array case
+        if (Array.isArray(raw)) {
+          return raw
+            .map((item) => {
+              if (typeof item === 'string') return htmlToPlainText(item).trim()
+              if (item && typeof item === 'object') {
+                const obj = item as Record<string, unknown>
+                // Common key possibilities
+                const label = (obj.label || obj.name || obj.key || obj.criterion || obj.category) as string | undefined
+                const value = (obj.value || obj.score || obj.weight || obj.percent || obj.percentage) as unknown
+                if (label != null && (value !== undefined && value !== null && value !== '')) {
+                  return `${String(label)}: ${String(value)}`.trim()
+                }
+                // Fallback: try to stringify a concise representation
+                try {
+                  return htmlToPlainText(JSON.stringify(obj))
+                } catch {
+                  return ''
+                }
+              }
+              return ''
+            })
+            .filter((s) => typeof s === 'string' && s.length > 0)
+        }
+        // String case
+        if (typeof raw === 'string') {
+          const cleaned = htmlToPlainText(raw).trim()
+          return cleaned ? [cleaned] : []
+        }
+        // Nothing usable
+        return []
+      })(),
       jobsMapped: record.jobs_mapped || record.Jobs_Mapped || record.mappedJobs || "",
       currentJobTitle: record.current_job_title || record.Current_Job_Title || record.currentPosition || "",
       currentEmployer: record.current_employer || record.Current_Employer || record.currentCompany || "",
@@ -151,10 +249,28 @@ export async function GET() {
       })()
     })) || []
 
+    // Slice for requested page/limit on our side
+    const start = (page - 1) * limit
+    const end = start + limit
+    const pageCandidates = mappedCandidates.slice(start, end)
+
+    // Use the correct total count from WEXA API
+    const totalCount = totalCountAll || mappedCandidates.length
+    
+    console.log('Returning to frontend:', { 
+      candidatesOnPage: pageCandidates.length, 
+      totalCount,
+      page,
+      limit,
+      slice: `${start}-${end}`
+    })
+    
     return NextResponse.json({
       success: true,
-      candidates: mappedCandidates,
-      totalCount: data.total_count || mappedCandidates.length,
+      candidates: pageCandidates,
+      totalCount,
+      page,
+      limit,
       message: "Candidates fetched successfully from Wexa table"
     })
 
