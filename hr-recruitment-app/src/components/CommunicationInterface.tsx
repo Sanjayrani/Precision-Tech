@@ -105,7 +105,7 @@ interface Message {
   timestamp: string
   sender: 'recruiter' | 'candidate'
   senderName: string
-  channel?: 'linkedin' | 'mail'
+  channel?: 'linkedin' | 'mail' | 'whatsapp'
   tag?: string
   isRead?: boolean
 }
@@ -169,12 +169,12 @@ export default function CommunicationInterface({ candidates, loading }: Communic
 
   // Extract content and metadata from prefixed strings like:
   // "Candidate - LinkedIn : hello" or "Recruiter - Mail : Hi"
-  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail'; followUp?: boolean } => {
+  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail' | 'whatsapp'; followUp?: boolean } => {
     if (typeof raw !== 'string') {
       return { content: String(raw ?? '') }
     }
     // Accept optional trailing "- Follow Up" segment before colon
-    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail)(?:\s*-\s*Follow\s*Up)?\s*:\s*(.*)$/i
+    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail|WhatsApp)(?:\s*-\s*Follow\s*Up)?\s*:\s*(.*)$/i
     const m = raw.match(re)
     if (m) {
       const senderRaw = m[1]
@@ -184,7 +184,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
       return {
         content: rest?.trim() ?? '',
         senderFromPrefix: senderRaw === 'Recruiter' ? 'Recruiter' : 'Candidate',
-        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : 'linkedin',
+        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : channelRaw.toLowerCase() === 'whatsapp' ? 'whatsapp' : 'linkedin',
         followUp
       }
     }
@@ -195,8 +195,9 @@ export default function CommunicationInterface({ candidates, loading }: Communic
       let inferredSender: 'Recruiter' | 'Candidate' | undefined
       if (prefix.includes('candidate')) inferredSender = 'Candidate'
       else if (prefix.includes('recruiter')) inferredSender = 'Recruiter'
-      let inferredChannel: 'linkedin' | 'mail' | undefined
+      let inferredChannel: 'linkedin' | 'mail' | 'whatsapp' | undefined
       if (prefix.includes('mail') || prefix.includes('email')) inferredChannel = 'mail'
+      else if (prefix.includes('whatsapp') || prefix.includes('whats app') || prefix.includes('wa')) inferredChannel = 'whatsapp'
       else if (prefix.includes('linkedin') || prefix.includes('linked in')) inferredChannel = 'linkedin'
       const followUp = /follow\s*up/i.test(prefix)
       return {
@@ -215,9 +216,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   }
 
   // Normalize overall messages from various possible API shapes
-  type OverallNestedBranch = {
-    mail?: OverallMessages
-    linkedin?: OverallMessages
+type OverallNestedBranch = {
+  mail?: OverallMessages
+  linkedin?: OverallMessages
+  whatsapp?: OverallMessages
   } | OverallMessages
 
   type OverallNested = {
@@ -230,8 +232,8 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   type OverallValue = OverallMessages | OverallNested | null
 
   // Type guard to detect an object with possible channel keys
-  const hasChannels = (x: unknown): x is { mail?: OverallMessages; linkedin?: OverallMessages } => {
-    return typeof x === 'object' && x !== null && ('mail' in (x as object) || 'linkedin' in (x as object))
+  const hasChannels = (x: unknown): x is { mail?: OverallMessages; linkedin?: OverallMessages; whatsapp?: OverallMessages } => {
+    return typeof x === 'object' && x !== null && ('mail' in (x as object) || 'linkedin' in (x as object) || 'whatsapp' in (x as object))
   }
 
   const getOverallMessagesValue = useCallback((candidate: Candidate | Record<string, unknown>): OverallValue => {
@@ -269,7 +271,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
           const overall = getOverallMessagesValue(candidate)
           const defaultDate = pickBestDate(candidate.lastContactedDate)
 
-          const pushParsed = (rawContent: unknown, inferredSender?: 'Recruiter' | 'Candidate', channelHint?: 'linkedin' | 'mail') => {
+          const pushParsed = (rawContent: unknown, inferredSender?: 'Recruiter' | 'Candidate', channelHint?: 'linkedin' | 'mail' | 'whatsapp') => {
             if (rawContent == null) return
             if (Array.isArray(rawContent)) {
               rawContent.forEach((rc) => pushParsed(rc, inferredSender, channelHint))
@@ -280,10 +282,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               const obj = rawContent as { content: string; timestamp?: string; sender?: 'Recruiter' | 'Candidate' }
               const extracted = extractFromPrefixed(obj.content)
               const senderFinal = extracted.senderFromPrefix || obj.sender || inferredSender || 'Recruiter'
-              const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(obj.content) ? 'mail' : 'linkedin'))
+              const channelFinal: 'linkedin' | 'mail' | 'whatsapp' = (extracted.channel || channelHint || (/mail|email/i.test(obj.content) ? 'mail' : (/whatsapp|whats\s*app|\bwa\b/i.test(obj.content) ? 'whatsapp' : 'linkedin')))
               const tsDate = pickBestDate(obj.timestamp, defaultDate)
               const tagLabel = extracted.followUp
-                ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+                ? (channelFinal === 'mail' ? 'mail follow up' : channelFinal === 'whatsapp' ? 'whatsapp follow up' : 'linkedin follow up')
                 : undefined
               messages.push({
                 id: `msg-${candidate.id}-${messages.length}`,
@@ -300,10 +302,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
             // Treat as string
             const extracted = extractFromPrefixed(String(rawContent))
             const senderFinal = extracted.senderFromPrefix || inferredSender || 'Recruiter'
-            const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(String(rawContent)) ? 'mail' : 'linkedin'))
+            const channelFinal: 'linkedin' | 'mail' | 'whatsapp' = (extracted.channel || channelHint || (/mail|email/i.test(String(rawContent)) ? 'mail' : (/whatsapp|whats\s*app|\bwa\b/i.test(String(rawContent)) ? 'whatsapp' : 'linkedin')))
             const tsDate = defaultDate
             const tagLabel = extracted.followUp
-              ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+              ? (channelFinal === 'mail' ? 'mail follow up' : channelFinal === 'whatsapp' ? 'whatsapp follow up' : 'linkedin follow up')
               : undefined
             messages.push({
               id: `msg-${candidate.id}-${messages.length}`,
@@ -330,6 +332,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               if (hasChannels(rec)) {
                 if (rec.mail != null) pushParsed(rec.mail, 'Recruiter', 'mail')
                 if (rec.linkedin != null) pushParsed(rec.linkedin, 'Recruiter', 'linkedin')
+                if ((rec as any).whatsapp != null) pushParsed((rec as any).whatsapp, 'Recruiter', 'whatsapp')
               } else {
                 pushParsed(rec, 'Recruiter')
               }
@@ -339,6 +342,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               if (hasChannels(cand)) {
                 if (cand.mail != null) pushParsed(cand.mail, 'Candidate', 'mail')
                 if (cand.linkedin != null) pushParsed(cand.linkedin, 'Candidate', 'linkedin')
+                if ((cand as any).whatsapp != null) pushParsed((cand as any).whatsapp, 'Candidate', 'whatsapp')
               } else {
                 pushParsed(cand, 'Candidate')
               }
@@ -515,10 +519,20 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                       {message.channel && (
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] bg-white text-black border ${
-                            message.channel === 'linkedin' ? 'border-blue-600' : 'border-amber-500'
+                            message.channel === 'linkedin'
+                              ? 'border-blue-600'
+                              : message.channel === 'whatsapp'
+                                ? 'border-green-600'
+                                : 'border-amber-500'
                           }`}
                         >
-                          {message.tag ? message.tag : (message.channel === 'linkedin' ? 'LinkedIn' : 'Email')}
+                          {message.tag
+                            ? message.tag
+                            : message.channel === 'linkedin'
+                              ? 'LinkedIn'
+                              : message.channel === 'whatsapp'
+                                ? 'WhatsApp'
+                                : 'Email'}
                         </span>
                       )}
                     </div>
