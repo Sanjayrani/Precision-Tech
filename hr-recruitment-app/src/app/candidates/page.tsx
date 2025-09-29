@@ -90,14 +90,25 @@ export default function CandidatesPage() {
   const fetchCandidates = async (p: number) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=20`)
+      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=10`)
       if (response.ok) {
         const data = await response.json()
-        setCandidates(data.candidates || [])
+        console.log('API Response:', { 
+          page: p, 
+          candidatesCount: data.candidates?.length, 
+          totalCount: data.totalCount,
+          limit: data.limit 
+        })
+        // Ensure we only show 10 candidates per page, even if API returns more
+        const candidates = data.candidates || []
+        const limitedCandidates = candidates.slice(0, 10)
+        setCandidates(limitedCandidates)
         // Use server-reported totalCount and our limit to compute total pages
-        const serverLimit = data.limit || 20
-        const total = data.totalCount || (data.candidates?.length || 0)
-        setTotalPages(Math.ceil(total / serverLimit))
+        const serverLimit = data.limit || 10
+        const total = data.totalCount || 0
+        const calculatedPages = Math.ceil(total / serverLimit)
+        console.log('Pagination calculation:', { total, serverLimit, calculatedPages })
+        setTotalPages(calculatedPages)
       }
     } catch (error) {
       console.error('Error fetching candidates:', error)
@@ -114,24 +125,8 @@ export default function CandidatesPage() {
     return s
   }
 
-  // Filter candidates based on search term and status
-  const filteredCandidates = candidates.filter(candidate => {
-    const matchesSearch = !search || (
-      candidate.candidateName.toLowerCase().includes(search.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(search.toLowerCase()) ||
-      candidate.skills.toLowerCase().includes(search.toLowerCase()) ||
-      candidate.currentJobTitle?.toLowerCase().includes(search.toLowerCase()) ||
-      candidate.currentEmployer?.toLowerCase().includes(search.toLowerCase())
-    )
-    
-    const normalized = normalizeStatus(candidate.status)
-    const matchesStatus = !statusFilter || normalized === statusFilter
-    
-    return matchesSearch && matchesStatus
-  })
-
   // Server-side pagination already applied; just use current list
-  const paginatedCandidates = filteredCandidates
+  const paginatedCandidates = candidates
   const totalFilteredPages = totalPages
 
   const handleSearch = (e: React.FormEvent) => {
