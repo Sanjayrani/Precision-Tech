@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { Search, Phone, MoreHorizontal, Send, User, Building2 } from 'lucide-react'
+import { Search, Phone, MoreHorizontal, Send, User, Building2, MessageSquare } from 'lucide-react'
 
 // Normalize message text so that literal "\n" becomes real newlines and spacing is preserved
 const normalizeMessageText = (text: string): string => {
@@ -164,6 +164,8 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [waMessage, setWaMessage] = useState('Hi, is this a good time to chat regarding the opportunity?')
 
   const [conversations, setConversations] = useState<Conversation[]>([])
 
@@ -490,6 +492,13 @@ type OverallNestedBranch = {
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <MoreHorizontal className="h-5 w-5 text-gray-600" />
                   </button>
+                  <button
+                    className="ml-2 px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center"
+                    onClick={() => setShowWhatsAppModal(true)}
+                    title="Send WhatsApp"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" /> WhatsApp
+                  </button>
                 </div>
               </div>
             </div>
@@ -595,6 +604,67 @@ type OverallNestedBranch = {
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
               <p className="text-gray-500">Choose a candidate conversation from the sidebar to start messaging</p>
+            </div>
+          </div>
+        )}
+
+        {/* WhatsApp Modal */}
+        {showWhatsAppModal && selectedConv && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowWhatsAppModal(false)} />
+            <div className="relative bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+              <h4 className="text-lg font-semibold mb-4">Send WhatsApp Message</h4>
+              <div className="space-y-3 mb-4">
+                <div className="text-sm text-gray-600">
+                  To: <span className="font-medium">{selectedConv.candidateName}</span> — <span>{selectedConv.contact}</span>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Message</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-2 h-28 focus:ring-2 focus:ring-green-600 focus:border-green-600"
+                    value={waMessage}
+                    onChange={(e) => setWaMessage(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowWhatsAppModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  onClick={async () => {
+                    try {
+                      const rowId = prompt('Enter template row_id to use for WhatsApp') || ''
+                      if (!rowId.trim()) {
+                        alert('row_id is required')
+                        return
+                      }
+                      const res = await fetch('/api/communications/whatsapp-send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          candidate_name: selectedConv.candidateName,
+                          candidate_phone: selectedConv.contact,
+                          job_title: selectedConv.jobTitle,
+                          message: waMessage,
+                          row_id: rowId.trim(),
+                        }),
+                      })
+                      if (!res.ok) throw new Error('Failed to trigger WhatsApp sender')
+                      setShowWhatsAppModal(false)
+                    } catch (err) {
+                      console.error(err)
+                      alert('Failed to trigger WhatsApp sender')
+                    }
+                  }}
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         )}
