@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       location_match_weight,
       experience_weight,
       education_weight,
+      threshold_score,
       custom_weights
     } = body
 
@@ -57,15 +58,17 @@ Recruiter Email : ${recruiter_email}
 Recruiter Designation : ${recruiter_designation}
 
 Candidate Evaluation Weights:
-- Technical Skills: ${technical_skills_weight || 35}%
-- Soft Skills: ${soft_skills_weight || 15}%
-- Open to Work: ${open_to_work_weight || 5}%
-- Job Match: ${job_match_weight || 15}%
-- Location Match: ${location_match_weight || 5}%
-- Experience: ${experience_weight || 15}%
-- Education: ${education_weight || 10}%${custom_weights && custom_weights.length > 0 ? `
+- Technical Skills: ${technical_skills_weight || 35}
+- Soft Skills: ${soft_skills_weight || 15}
+- Open to Work: ${open_to_work_weight || 5}
+- Job Match: ${job_match_weight || 15}
+- Location Match: ${location_match_weight || 5}
+- Experience: ${experience_weight || 15}
+- Education: ${education_weight || 10}
+Threshold Score: ${threshold_score ?? 70}
+${custom_weights && custom_weights.length > 0 ? `
 Custom Weights:
-${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.name}: ${weight.weight}%`).join('\n')}` : ''}`,
+${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.name}: ${weight.weight}`).join('\n')}` : ''}`,
       input_variables: {
         job_title: job_title,
         job_description: job_description,
@@ -84,6 +87,7 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
         location_match_weight: location_match_weight || 5,
         experience_weight: experience_weight || 15,
         education_weight: education_weight || 10,
+        threshold_score: (typeof threshold_score === 'number' ? threshold_score : 70),
         custom_weights: custom_weights || [],
         action: "create_job",
         timestamp: new Date().toISOString(),
@@ -146,6 +150,7 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
         location_match_weight: location_match_weight || 5,
         experience_weight: experience_weight || 15,
         education_weight: education_weight || 10,
+        threshold_score: (typeof threshold_score === 'number' ? threshold_score : 70),
         custom_weights: custom_weights || [],
         postedDate: new Date().toISOString(),
         isActive: true

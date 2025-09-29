@@ -17,8 +17,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [totalWeight, setTotalWeight] = useState(100)
-  const [customWeights, setCustomWeights] = useState<Array<{id: string, name: string, weight: number}>>([])
-  const [newCustomWeight, setNewCustomWeight] = useState({name: '', weight: 0})
+  // Custom weights removed
   const [activeStandardWeights, setActiveStandardWeights] = useState<Set<string>>(new Set([
     'technical_skills_weight',
     'soft_skills_weight',
@@ -38,8 +37,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       setError('')
       setSuccess('')
       setTotalWeight(100)
-      setCustomWeights([])
-      setNewCustomWeight({name: '', weight: 0})
+      
       setActiveStandardWeights(new Set([
         'technical_skills_weight',
         'soft_skills_weight',
@@ -62,9 +60,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       return sum + (parseInt(input?.value) || 0)
     }, 0)
     
-    const customTotal = customWeights.reduce((sum, customWeight) => sum + customWeight.weight, 0)
-    
-    const newTotal = standardTotal + customTotal
+    const newTotal = standardTotal
     setTotalWeight(newTotal)
     
     // Auto-adjust if enabled and total exceeds 100%
@@ -91,7 +87,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
   // Auto-adjust weights when total exceeds 100%
   const autoAdjustWeights = (currentTotal: number) => {
     const excess = currentTotal - 100
-    const totalWeights = Array.from(activeStandardWeights).length + customWeights.length
+    const totalWeights = Array.from(activeStandardWeights).length
     
     if (totalWeights === 0) return
     
@@ -107,11 +103,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       }
     })
     
-    // Adjust custom weights
-    setCustomWeights(customWeights.map(weight => ({
-      ...weight,
-      weight: Math.max(0, weight.weight - reductionPerWeight)
-    })))
+    // Custom weights removed
     
     setWeightNotification({
       type: 'info',
@@ -129,8 +121,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
       return sum + (parseInt(input?.value) || 0)
     }, 0)
     
-    const customTotal = customWeights.reduce((sum, customWeight) => sum + customWeight.weight, 0)
-    const currentTotal = standardTotal + customTotal
+    const currentTotal = standardTotal
     
     if (currentTotal === 0) return
     
@@ -147,10 +138,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
     })
     
     // Scale custom weights proportionally
-    setCustomWeights(customWeights.map(weight => ({
-      ...weight,
-      weight: Math.round(weight.weight * scaleFactor)
-    })))
+    // Custom weights removed
     
     setWeightNotification({
       type: 'success',
@@ -163,7 +151,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
 
   // Get smart suggestions for weight distribution
   const getWeightSuggestions = () => {
-    const activeCount = Array.from(activeStandardWeights).length + customWeights.length
+    const activeCount = Array.from(activeStandardWeights).length
     if (activeCount === 0) return null
     
     const suggestedWeight = Math.floor(100 / activeCount)
@@ -194,44 +182,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
     }
   }, [isOpen])
 
-  // Custom weight functions
-  const addCustomWeight = () => {
-    if (newCustomWeight.name.trim() && newCustomWeight.weight > 0) {
-      const newWeight = {
-        id: Date.now().toString(),
-        name: newCustomWeight.name.trim(),
-        weight: newCustomWeight.weight
-      }
-      setCustomWeights([...customWeights, newWeight])
-      setNewCustomWeight({name: '', weight: 0})
-      
-      // Check if this addition would exceed 100%
-      const currentTotal = totalWeight
-      if (currentTotal + newCustomWeight.weight > 100) {
-        setWeightNotification({
-          type: 'warning',
-          message: `Adding this weight would exceed 100%. Consider reducing other weights or using the balance feature.`
-        })
-      }
-      
-      // Recalculate total after a short delay to ensure state is updated
-      setTimeout(calculateTotalWeight, 100)
-    }
-  }
-
-  const removeCustomWeight = (id: string) => {
-    setCustomWeights(customWeights.filter(weight => weight.id !== id))
-    // Recalculate total after a short delay to ensure state is updated
-    setTimeout(calculateTotalWeight, 100)
-  }
-
-  const updateCustomWeight = (id: string, field: 'name' | 'weight', value: string | number) => {
-    setCustomWeights(customWeights.map(weight => 
-      weight.id === id ? { ...weight, [field]: value } : weight
-    ))
-    // Recalculate total after a short delay to ensure state is updated
-    setTimeout(calculateTotalWeight, 100)
-  }
+  // Custom weights removed
 
   const removeStandardWeight = (weightName: string) => {
     const newActiveWeights = new Set(activeStandardWeights)
@@ -315,8 +266,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
         recruiter_designation: formData.get('recruiter_designation') as string,
         // Active standard weights
         ...weights,
-        // Custom weights
-        custom_weights: customWeights,
+        threshold_score: parseInt(formData.get('threshold_score') as string) || 0,
       }
 
       console.log('Submitting job data:', jobData)
@@ -826,10 +776,27 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl font-bold text-orange-600">{totalWeight}</span>
-                      
                     </div>
                   </div>
                   
+                  {/* Threshold Score */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1">
+                      <label htmlFor="threshold_score" className="block text-sm font-medium text-gray-700 mb-2">
+                        Threshold Score
+                      </label>
+                      <input
+                        type="number"
+                        id="threshold_score"
+                        name="threshold_score"
+                        min="0"
+                        max="100"
+                        defaultValue="70"
+                        className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-center"
+                      />
+                    </div>
+                  </div>
+
                   {/* Weight Notification */}
                   {weightNotification && (
                     <div className={`mt-3 p-3 rounded-lg ${
@@ -917,103 +884,7 @@ export default function CreateJobDialog({ isOpen, onClose, onJobCreated }: Creat
                 )}
               </div>
 
-              {/* Custom Weights Section */}
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-                <h3 className="font-semibold text-purple-900 mb-4 flex items-center">
-                  <Plus className="h-5 w-5 mr-2" />
-                  Custom Evaluation Weights
-                </h3>
-                <p className="text-sm text-purple-700 mb-6">
-                  Add your own custom evaluation criteria. These will be included in the total weight calculation.
-                </p>
-                
-                {/* Add Custom Weight Form */}
-                <div className="bg-white rounded-lg p-4 border border-purple-200 mb-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-2">
-                      <label htmlFor="custom_weight_name" className="block text-sm font-medium text-gray-700 mb-2">
-                        Custom Weight Name
-                      </label>
-                      <input
-                        type="text"
-                        id="custom_weight_name"
-                        value={newCustomWeight.name}
-                        onChange={(e) => setNewCustomWeight({...newCustomWeight, name: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                        placeholder="e.g., Cultural Fit, Leadership Skills"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="custom_weight_value" className="block text-sm font-medium text-gray-700 mb-2">
-                        Weight
-                      </label>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="number"
-                          id="custom_weight_value"
-                          min="1"
-                          max="100"
-                          value={newCustomWeight.weight}
-                          onChange={(e) => setNewCustomWeight({...newCustomWeight, weight: parseInt(e.target.value) || 0})}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 text-center"
-                        />
-                        
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={addCustomWeight}
-                      disabled={!newCustomWeight.name.trim() || newCustomWeight.weight <= 0}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Custom Weight
-                    </button>
-                  </div>
-                </div>
-
-                {/* Custom Weights List */}
-                {customWeights.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-purple-800 mb-3">Your Custom Weights:</h4>
-                    {customWeights.map((customWeight) => (
-                      <div key={customWeight.id} className="bg-white rounded-lg p-4 border border-purple-200 flex items-center justify-between">
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <input
-                              type="text"
-                              value={customWeight.name}
-                              onChange={(e) => updateCustomWeight(customWeight.id, 'name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
-                            />
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={customWeight.weight}
-                              onChange={(e) => updateCustomWeight(customWeight.id, 'weight', parseInt(e.target.value) || 0)}
-                              className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 text-center"
-                            />
-                            
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomWeight(customWeight.id)}
-                          className="ml-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Remove this custom weight"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Custom Weights Section removed as per requirement */}
 
               {/* Footer */}
               <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
