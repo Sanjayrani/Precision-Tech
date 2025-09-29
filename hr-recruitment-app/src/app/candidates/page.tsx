@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import CandidateDetailsDialog from '@/components/CandidateDetailsDialog'
@@ -19,6 +20,7 @@ interface Candidate {
   miscellaneousInformation: string
   candidateScore: number
   scoreDescription: string
+  score_breakdown?: string[]
   jobsMapped: string
   currentJobTitle: string
   currentEmployer: string
@@ -57,6 +59,8 @@ interface Candidate {
 }
 
 export default function CandidatesPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -67,17 +71,33 @@ export default function CandidatesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
-    fetchCandidates()
+    // Initialize from URL
+    const initialPage = parseInt(searchParams.get('page') || '1', 10)
+    const safePage = Number.isNaN(initialPage) || initialPage < 1 ? 1 : initialPage
+    setPage(safePage)
+    fetchCandidates(safePage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const fetchCandidates = async () => {
+  // Keep URL in sync when page changes
+  useEffect(() => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.set('page', String(page))
+    router.replace(`?${params.toString()}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
+
+  const fetchCandidates = async (p: number) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/candidates-candidatestable`)
+      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=20`)
       if (response.ok) {
         const data = await response.json()
         setCandidates(data.candidates || [])
-        setTotalPages(Math.ceil((data.totalCount || 0) / 10))
+        // Use server-reported totalCount and our limit to compute total pages
+        const serverLimit = data.limit || 20
+        const total = data.totalCount || (data.candidates?.length || 0)
+        setTotalPages(Math.ceil(total / serverLimit))
       }
     } catch (error) {
       console.error('Error fetching candidates:', error)
@@ -110,16 +130,17 @@ export default function CandidatesPage() {
     return matchesSearch && matchesStatus
   })
 
-  // Paginate filtered candidates
-  const candidatesPerPage = 10
-  const startIndex = (page - 1) * candidatesPerPage
-  const endIndex = startIndex + candidatesPerPage
-  const paginatedCandidates = filteredCandidates.slice(startIndex, endIndex)
-  const totalFilteredPages = Math.ceil(filteredCandidates.length / candidatesPerPage)
+  // Server-side pagination already applied; just use current list
+  const paginatedCandidates = filteredCandidates
+  const totalFilteredPages = totalPages
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    params.set('page', '1')
+    router.replace(`?${params.toString()}`)
+    fetchCandidates(1)
   }
 
   const handleCandidateClick = (candidate: Candidate) => {
@@ -351,7 +372,7 @@ export default function CandidatesPage() {
               <div className="mt-6 flex justify-center">
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
+                    onClick={() => { const next = Math.max(1, page - 1); setPage(next); fetchCandidates(next) }}
                     disabled={page === 1}
                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
@@ -361,7 +382,7 @@ export default function CandidatesPage() {
                   {Array.from({ length: totalFilteredPages }, (_, i) => i + 1).map((pageNum) => (
                     <button
                       key={pageNum}
-                      onClick={() => setPage(pageNum)}
+                      onClick={() => { setPage(pageNum); fetchCandidates(pageNum) }}
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                         page === pageNum
                           ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
@@ -373,7 +394,7 @@ export default function CandidatesPage() {
                   ))}
                   
                   <button
-                    onClick={() => setPage(Math.min(totalFilteredPages, page + 1))}
+                    onClick={() => { const next = Math.min(totalFilteredPages, page + 1); setPage(next); fetchCandidates(next) }}
                     disabled={page === totalFilteredPages}
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >

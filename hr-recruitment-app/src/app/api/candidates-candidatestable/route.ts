@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { htmlToPlainText } from "@/lib/formatHtml"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const pageParam = parseInt(searchParams.get('page') || '1', 10)
+    const limitParam = parseInt(searchParams.get('limit') || '10', 10)
+    const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+    const limit = Number.isNaN(limitParam) || limitParam < 1 ? 10 : Math.min(limitParam, 100)
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
     const tableId = process.env.NEXT_PUBLIC_CANDIDATES_TABLE_ID
     const jobsTableId = process.env.NEXT_PUBLIC_JOBS_TABLE_ID
@@ -16,7 +21,7 @@ export async function GET() {
       throw new Error("Missing required parameters")
     }
 
-    const url = `https://api.wexa.ai/storage/${projectId}/${tableId}?page=1&query=&sort=1&sort_key=_id`
+    const url = `https://api.wexa.ai/storage/${projectId}/${tableId}?page=${page}&limit=${limit}&query=&sort=1&sort_key=_id`
 
     const response = await fetch(url, {
       method: 'GET',
@@ -78,6 +83,41 @@ export async function GET() {
       miscellaneousInformation: String(record.miscellaneous_information || record.Miscellaneous_Information || record.additionalInfo || ""),
       candidateScore: record.candidate_score || record.Candidate_Score || record.score || 0,
       scoreDescription: String(record.score_description || record.Score_Description || record.scoreDetails || ""),
+      // Normalize score_breakdown into an array of display-friendly strings
+      score_breakdown: (() => {
+        const raw = (record.score_breakdown ?? record.Score_Breakdown ?? record.scoreBreakdown ?? record.ScoreBreakDown) as unknown
+        // Array case
+        if (Array.isArray(raw)) {
+          return raw
+            .map((item) => {
+              if (typeof item === 'string') return htmlToPlainText(item).trim()
+              if (item && typeof item === 'object') {
+                const obj = item as Record<string, unknown>
+                // Common key possibilities
+                const label = (obj.label || obj.name || obj.key || obj.criterion || obj.category) as string | undefined
+                const value = (obj.value || obj.score || obj.weight || obj.percent || obj.percentage) as unknown
+                if (label != null && (value !== undefined && value !== null && value !== '')) {
+                  return `${String(label)}: ${String(value)}`.trim()
+                }
+                // Fallback: try to stringify a concise representation
+                try {
+                  return htmlToPlainText(JSON.stringify(obj))
+                } catch {
+                  return ''
+                }
+              }
+              return ''
+            })
+            .filter((s) => typeof s === 'string' && s.length > 0)
+        }
+        // String case
+        if (typeof raw === 'string') {
+          const cleaned = htmlToPlainText(raw).trim()
+          return cleaned ? [cleaned] : []
+        }
+        // Nothing usable
+        return []
+      })(),
       jobsMapped: record.jobs_mapped || record.Jobs_Mapped || record.mappedJobs || "",
       currentJobTitle: record.current_job_title || record.Current_Job_Title || record.currentPosition || "",
       currentEmployer: record.current_employer || record.Current_Employer || record.currentCompany || "",
@@ -155,6 +195,8 @@ export async function GET() {
       success: true,
       candidates: mappedCandidates,
       totalCount: data.total_count || mappedCandidates.length,
+      page,
+      limit,
       message: "Candidates fetched successfully from Wexa table"
     })
 

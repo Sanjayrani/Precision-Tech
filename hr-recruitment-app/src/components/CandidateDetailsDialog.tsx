@@ -15,6 +15,7 @@ interface Candidate {
   miscellaneousInformation: string
   candidateScore: number
   scoreDescription: string
+  score_breakdown?: string[]
   jobsMapped: string
   currentJobTitle: string
   currentEmployer: string
@@ -312,6 +313,23 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                   Candidate Score Details
                 </h3>
                 <p className="text-gray-700 leading-relaxed">{candidate.scoreDescription}</p>
+              </div>
+            )}
+
+            {/* Score Breakdown */}
+            {Array.isArray(candidate.score_breakdown) && candidate.score_breakdown.filter((s) => typeof s === 'string' && s.trim().length > 0).length > 0 && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-100">
+                <h3 className="font-semibold text-amber-900 mb-4 flex items-center">
+                  <Star className="h-5 w-5 mr-2" />
+                  Score Breakdown
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {candidate.score_breakdown.filter((s) => typeof s === 'string' && s.trim().length > 0).map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
+                      <span className="text-sm text-gray-700 truncate pr-2">{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
