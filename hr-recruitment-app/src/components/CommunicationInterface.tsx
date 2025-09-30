@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { Search, Phone, MoreHorizontal, Send, User, Building2 } from 'lucide-react'
+import { Search, Phone, MoreHorizontal, Send, User, Building2, MessageSquare } from 'lucide-react'
 
 // Normalize message text so that literal "\n" becomes real newlines and spacing is preserved
 const normalizeMessageText = (text: string): string => {
@@ -105,7 +105,7 @@ interface Message {
   timestamp: string
   sender: 'recruiter' | 'candidate'
   senderName: string
-  channel?: 'linkedin' | 'mail'
+  channel?: 'linkedin' | 'mail' | 'whatsapp'
   tag?: string
   isRead?: boolean
 }
@@ -116,6 +116,7 @@ interface Conversation {
   candidateName: string
   jobTitle: string
   contact: string
+  phone?: string
   taskId: string
   messages: Message[]
   lastMessage: string
@@ -164,17 +165,19 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [waMessage, setWaMessage] = useState('')
 
   const [conversations, setConversations] = useState<Conversation[]>([])
 
   // Extract content and metadata from prefixed strings like:
   // "Candidate - LinkedIn : hello" or "Recruiter - Mail : Hi"
-  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail'; followUp?: boolean } => {
+  const extractFromPrefixed = (raw: string): { content: string; senderFromPrefix?: 'Recruiter' | 'Candidate'; channel?: 'linkedin' | 'mail' | 'whatsapp'; followUp?: boolean } => {
     if (typeof raw !== 'string') {
       return { content: String(raw ?? '') }
     }
     // Accept optional trailing "- Follow Up" segment before colon
-    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail)(?:\s*-\s*Follow\s*Up)?\s*:\s*(.*)$/i
+    const re = /^(Recruiter|Candidate)\s*-\s*(LinkedIn|Mail|WhatsApp)(?:\s*-\s*Follow\s*Up)?\s*:\s*(.*)$/i
     const m = raw.match(re)
     if (m) {
       const senderRaw = m[1]
@@ -184,7 +187,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
       return {
         content: rest?.trim() ?? '',
         senderFromPrefix: senderRaw === 'Recruiter' ? 'Recruiter' : 'Candidate',
-        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : 'linkedin',
+        channel: channelRaw.toLowerCase() === 'mail' ? 'mail' : channelRaw.toLowerCase() === 'whatsapp' ? 'whatsapp' : 'linkedin',
         followUp
       }
     }
@@ -195,8 +198,9 @@ export default function CommunicationInterface({ candidates, loading }: Communic
       let inferredSender: 'Recruiter' | 'Candidate' | undefined
       if (prefix.includes('candidate')) inferredSender = 'Candidate'
       else if (prefix.includes('recruiter')) inferredSender = 'Recruiter'
-      let inferredChannel: 'linkedin' | 'mail' | undefined
+      let inferredChannel: 'linkedin' | 'mail' | 'whatsapp' | undefined
       if (prefix.includes('mail') || prefix.includes('email')) inferredChannel = 'mail'
+      else if (prefix.includes('whatsapp') || prefix.includes('whats app') || prefix.includes('wa')) inferredChannel = 'whatsapp'
       else if (prefix.includes('linkedin') || prefix.includes('linked in')) inferredChannel = 'linkedin'
       const followUp = /follow\s*up/i.test(prefix)
       return {
@@ -215,9 +219,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   }
 
   // Normalize overall messages from various possible API shapes
-  type OverallNestedBranch = {
-    mail?: OverallMessages
-    linkedin?: OverallMessages
+type OverallNestedBranch = {
+  mail?: OverallMessages
+  linkedin?: OverallMessages
+  whatsapp?: OverallMessages
   } | OverallMessages
 
   type OverallNested = {
@@ -230,8 +235,8 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   type OverallValue = OverallMessages | OverallNested | null
 
   // Type guard to detect an object with possible channel keys
-  const hasChannels = (x: unknown): x is { mail?: OverallMessages; linkedin?: OverallMessages } => {
-    return typeof x === 'object' && x !== null && ('mail' in (x as object) || 'linkedin' in (x as object))
+  const hasChannels = (x: unknown): x is { mail?: OverallMessages; linkedin?: OverallMessages; whatsapp?: OverallMessages } => {
+    return typeof x === 'object' && x !== null && ('mail' in (x as object) || 'linkedin' in (x as object) || 'whatsapp' in (x as object))
   }
 
   const getOverallMessagesValue = useCallback((candidate: Candidate | Record<string, unknown>): OverallValue => {
@@ -269,7 +274,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
           const overall = getOverallMessagesValue(candidate)
           const defaultDate = pickBestDate(candidate.lastContactedDate)
 
-          const pushParsed = (rawContent: unknown, inferredSender?: 'Recruiter' | 'Candidate', channelHint?: 'linkedin' | 'mail') => {
+          const pushParsed = (rawContent: unknown, inferredSender?: 'Recruiter' | 'Candidate', channelHint?: 'linkedin' | 'mail' | 'whatsapp') => {
             if (rawContent == null) return
             if (Array.isArray(rawContent)) {
               rawContent.forEach((rc) => pushParsed(rc, inferredSender, channelHint))
@@ -280,10 +285,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               const obj = rawContent as { content: string; timestamp?: string; sender?: 'Recruiter' | 'Candidate' }
               const extracted = extractFromPrefixed(obj.content)
               const senderFinal = extracted.senderFromPrefix || obj.sender || inferredSender || 'Recruiter'
-              const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(obj.content) ? 'mail' : 'linkedin'))
+              const channelFinal: 'linkedin' | 'mail' | 'whatsapp' = (extracted.channel || channelHint || (/mail|email/i.test(obj.content) ? 'mail' : (/whatsapp|whats\s*app|\bwa\b/i.test(obj.content) ? 'whatsapp' : 'linkedin')))
               const tsDate = pickBestDate(obj.timestamp, defaultDate)
               const tagLabel = extracted.followUp
-                ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+                ? (channelFinal === 'mail' ? 'mail follow up' : channelFinal === 'whatsapp' ? 'whatsapp follow up' : 'linkedin follow up')
                 : undefined
               messages.push({
                 id: `msg-${candidate.id}-${messages.length}`,
@@ -300,10 +305,10 @@ export default function CommunicationInterface({ candidates, loading }: Communic
             // Treat as string
             const extracted = extractFromPrefixed(String(rawContent))
             const senderFinal = extracted.senderFromPrefix || inferredSender || 'Recruiter'
-            const channelFinal: 'linkedin' | 'mail' = (extracted.channel || channelHint || (/mail|email/i.test(String(rawContent)) ? 'mail' : 'linkedin'))
+            const channelFinal: 'linkedin' | 'mail' | 'whatsapp' = (extracted.channel || channelHint || (/mail|email/i.test(String(rawContent)) ? 'mail' : (/whatsapp|whats\s*app|\bwa\b/i.test(String(rawContent)) ? 'whatsapp' : 'linkedin')))
             const tsDate = defaultDate
             const tagLabel = extracted.followUp
-              ? ((channelFinal === 'mail') ? 'mail follow up' : 'linkedin follow up')
+              ? (channelFinal === 'mail' ? 'mail follow up' : channelFinal === 'whatsapp' ? 'whatsapp follow up' : 'linkedin follow up')
               : undefined
             messages.push({
               id: `msg-${candidate.id}-${messages.length}`,
@@ -330,6 +335,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               if (hasChannels(rec)) {
                 if (rec.mail != null) pushParsed(rec.mail, 'Recruiter', 'mail')
                 if (rec.linkedin != null) pushParsed(rec.linkedin, 'Recruiter', 'linkedin')
+                if ((rec as any).whatsapp != null) pushParsed((rec as any).whatsapp, 'Recruiter', 'whatsapp')
               } else {
                 pushParsed(rec, 'Recruiter')
               }
@@ -339,6 +345,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               if (hasChannels(cand)) {
                 if (cand.mail != null) pushParsed(cand.mail, 'Candidate', 'mail')
                 if (cand.linkedin != null) pushParsed(cand.linkedin, 'Candidate', 'linkedin')
+                if ((cand as any).whatsapp != null) pushParsed((cand as any).whatsapp, 'Candidate', 'whatsapp')
               } else {
                 pushParsed(cand, 'Candidate')
               }
@@ -353,6 +360,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
             candidateName: candidate.candidateName,
             jobTitle: candidate.currentJobTitle || 'Position',
             contact: candidate.phoneNumber || candidate.email,
+            phone: candidate.phoneNumber || '',
             taskId: candidate.job?.title || candidate.jobsMapped || 'Position', // Show only job title
             messages,
             lastMessage: lastMessage?.content || 'No messages',
@@ -486,6 +494,18 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                   <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <MoreHorizontal className="h-5 w-5 text-gray-600" />
                   </button>
+                  <button
+                    className={`ml-2 px-3 py-1 rounded-lg flex items-center ${selectedConv.phone ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                    onClick={() => {
+                      if (!selectedConv.phone) return
+                      setWaMessage('')
+                      setShowWhatsAppModal(true)
+                    }}
+                    title="Send WhatsApp"
+                    disabled={!selectedConv.phone}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" /> WhatsApp
+                  </button>
                 </div>
               </div>
             </div>
@@ -515,10 +535,20 @@ export default function CommunicationInterface({ candidates, loading }: Communic
                       {message.channel && (
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] bg-white text-black border ${
-                            message.channel === 'linkedin' ? 'border-blue-600' : 'border-amber-500'
+                            message.channel === 'linkedin'
+                              ? 'border-blue-600'
+                              : message.channel === 'whatsapp'
+                                ? 'border-green-600'
+                                : 'border-amber-500'
                           }`}
                         >
-                          {message.tag ? message.tag : (message.channel === 'linkedin' ? 'LinkedIn' : 'Email')}
+                          {message.tag
+                            ? message.tag
+                            : message.channel === 'linkedin'
+                              ? 'LinkedIn'
+                              : message.channel === 'whatsapp'
+                                ? 'WhatsApp'
+                                : 'Email'}
                         </span>
                       )}
                     </div>
@@ -581,6 +611,70 @@ export default function CommunicationInterface({ candidates, loading }: Communic
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
               <p className="text-gray-500">Choose a candidate conversation from the sidebar to start messaging</p>
+            </div>
+          </div>
+        )}
+
+        {/* WhatsApp Modal */}
+        {showWhatsAppModal && selectedConv && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowWhatsAppModal(false)} />
+            <div className="relative bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+              <h4 className="text-lg font-semibold mb-4 text-black">Send WhatsApp Message</h4>
+              <div className="space-y-3 mb-4">
+                <div className="text-sm text-gray-600">
+                  To: <span className="font-medium">{selectedConv.candidateName}</span> — <span>{selectedConv.phone || 'No phone'}</span>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Message</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-2 h-28 focus:ring-2 focus:ring-green-600 focus:border-green-600 placeholder-gray-400 text-gray-900"
+                    value={waMessage}
+                    onChange={(e) => setWaMessage(e.target.value)}
+                    placeholder="Type your WhatsApp message..."
+                  />
+                </div>
+                {!selectedConv.phone && (
+                  <div className="text-sm text-red-600">Don't have contact number to send WhatsApp message</div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowWhatsAppModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-lg ${selectedConv.phone ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                  onClick={async () => {
+                    try {
+                      if (!selectedConv.phone) {
+                        alert("Don't have contact number to send WhatsApp message")
+                        return
+                      }
+                      const res = await fetch('/api/communications/whatsapp-send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          candidate_name: selectedConv.candidateName,
+                          candidate_phone: selectedConv.phone,
+                          job_title: selectedConv.jobTitle,
+                          message: waMessage,
+                        }),
+                      })
+                      if (!res.ok) throw new Error('Failed to trigger WhatsApp sender')
+                      setShowWhatsAppModal(false)
+                    } catch (err) {
+                      console.error(err)
+                      alert('Failed to trigger WhatsApp sender')
+                    }
+                  }}
+                  disabled={!selectedConv.phone}
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         )}
