@@ -73,7 +73,14 @@ function JobsPageContent() {
       const response = await fetch(`/api/job-jobstable`)
       if (response.ok) {
         const data = await response.json()
-        setJobs(data.jobs || [])
+        const jobs = data.jobs || []
+        // Sort by postedDate (latest to oldest) as additional client-side sorting
+        const sortedJobs = [...jobs].sort((a: Job, b: Job) => {
+          const dateA = new Date(a.postedDate).getTime()
+          const dateB = new Date(b.postedDate).getTime()
+          return dateB - dateA // Latest first
+        })
+        setJobs(sortedJobs)
       }
     } catch (error) {
       console.error('Error fetching jobs:', error)

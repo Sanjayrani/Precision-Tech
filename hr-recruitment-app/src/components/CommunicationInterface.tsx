@@ -335,7 +335,7 @@ type OverallNestedBranch = {
               if (hasChannels(rec)) {
                 if (rec.mail != null) pushParsed(rec.mail, 'Recruiter', 'mail')
                 if (rec.linkedin != null) pushParsed(rec.linkedin, 'Recruiter', 'linkedin')
-                if ((rec as any).whatsapp != null) pushParsed((rec as any).whatsapp, 'Recruiter', 'whatsapp')
+                if ((rec as Record<string, unknown>).whatsapp != null) pushParsed((rec as Record<string, unknown>).whatsapp, 'Recruiter', 'whatsapp')
               } else {
                 pushParsed(rec, 'Recruiter')
               }
@@ -345,7 +345,7 @@ type OverallNestedBranch = {
               if (hasChannels(cand)) {
                 if (cand.mail != null) pushParsed(cand.mail, 'Candidate', 'mail')
                 if (cand.linkedin != null) pushParsed(cand.linkedin, 'Candidate', 'linkedin')
-                if ((cand as any).whatsapp != null) pushParsed((cand as any).whatsapp, 'Candidate', 'whatsapp')
+                if ((cand as Record<string, unknown>).whatsapp != null) pushParsed((cand as Record<string, unknown>).whatsapp, 'Candidate', 'whatsapp')
               } else {
                 pushParsed(cand, 'Candidate')
               }
@@ -635,7 +635,7 @@ type OverallNestedBranch = {
                   />
                 </div>
                 {!selectedConv.phone && (
-                  <div className="text-sm text-red-600">Don't have contact number to send WhatsApp message</div>
+                  <div className="text-sm text-red-600">Don&apos;t have contact number to send WhatsApp message</div>
                 )}
               </div>
               <div className="flex justify-end space-x-2">

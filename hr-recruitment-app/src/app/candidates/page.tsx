@@ -3,9 +3,16 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import Layout from '@/components/Layout'
-import CandidateDetailsDialog from '@/components/CandidateDetailsDialog'
+import SourcingProgressBar from '@/components/SourcingProgressBar'
+import SourcingNotification from '@/components/SourcingNotification'
 import { Search, Plus, Mail, Phone, Calendar, MapPin, Star } from 'lucide-react'
+
+const CandidateDetailsDialog = dynamic(() => import('@/components/CandidateDetailsDialog'), {
+  ssr: false,
+  loading: () => null
+})
 
 interface Candidate {
   id: string
@@ -69,6 +76,9 @@ function CandidatesPageContent() {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [openInEdit, setOpenInEdit] = useState(false)
+  const [showSourcingProgress, setShowSourcingProgress] = useState(false)
+  const [showSourcingNotification, setShowSourcingNotification] = useState(false)
 
   useEffect(() => {
     // Initialize from URL
@@ -77,6 +87,24 @@ function CandidatesPageContent() {
     setPage(safePage)
     fetchCandidates(safePage)
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Check for sourcing progress on page load
+  useEffect(() => {
+    const sourcingInProgress = sessionStorage.getItem('sourcingInProgress')
+    const sourcingProgress = sessionStorage.getItem('sourcingProgress')
+    const sourcingJobs = sessionStorage.getItem('sourcingJobs')
+    
+    if (sourcingJobs) {
+      // Multiple jobs sourcing - show notification
+      setShowSourcingNotification(true)
+    } else if (sourcingInProgress === 'true' || sourcingProgress) {
+      // Single job sourcing - show progress bar
+      setShowSourcingProgress(true)
+    }
+    
+    // Clear the flag after showing progress
+    sessionStorage.removeItem('sourcingInProgress')
   }, [])
 
   // Keep URL in sync when page changes
@@ -101,7 +129,13 @@ function CandidatesPageContent() {
         })
         // Ensure we only show 10 candidates per page, even if API returns more
         const candidates = data.candidates || []
-        const limitedCandidates = candidates.slice(0, 10)
+        // Sort latest to oldest by createdAt
+        const sorted = [...candidates].sort((a: Candidate, b: Candidate) => {
+          const at = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return bt - at
+        })
+        const limitedCandidates = sorted.slice(0, 10)
         setCandidates(limitedCandidates)
         // Use server-reported totalCount and our limit to compute total pages
         const serverLimit = data.limit || 10
@@ -140,12 +174,40 @@ function CandidatesPageContent() {
 
   const handleCandidateClick = (candidate: Candidate) => {
     setSelectedCandidate(candidate)
+    setOpenInEdit(false)
     setIsDialogOpen(true)
+  }
+
+  const handleSaveCandidate = (updated: Candidate) => {
+    // Optimistic UI update
+    setCandidates(prev => prev.map(c => c.id === updated.id ? updated : c))
+    // Persist via API if available (fallback: no-op)
+    fetch('/api/candidates', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    }).catch(() => {})
   }
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
     setSelectedCandidate(null)
+  }
+
+  const handleSourcingComplete = () => {
+    setShowSourcingProgress(false)
+    // Refresh candidates list to show new candidates
+    fetchCandidates(page)
+  }
+
+  const handleNotificationComplete = () => {
+    setShowSourcingNotification(false)
+    // Refresh candidates list to show new candidates
+    fetchCandidates(page)
+  }
+
+  const handleNotificationDismiss = () => {
+    setShowSourcingNotification(false)
   }
 
   const formatDate = (dateString: string | null) => {
@@ -214,6 +276,13 @@ function CandidatesPageContent() {
 
   return (
     <Layout>
+      {/* Sourcing Notification for multiple jobs */}
+      <SourcingNotification 
+        isVisible={showSourcingNotification}
+        onComplete={handleNotificationComplete}
+        onDismiss={handleNotificationDismiss}
+      />
+      
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow">
@@ -228,6 +297,16 @@ function CandidatesPageContent() {
         </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sourcing Progress Bar */}
+        {showSourcingProgress && (
+          <div className="mb-6">
+            <SourcingProgressBar 
+              isVisible={showSourcingProgress}
+              onComplete={handleSourcingComplete}
+            />
+          </div>
+        )}
+        
         {/* Filters */}
         <div className="mb-6 space-y-4">
           <form onSubmit={handleSearch} className="flex gap-4">
@@ -272,9 +351,10 @@ function CandidatesPageContent() {
               <ul className="divide-y divide-gray-200">
                 {paginatedCandidates.map((candidate) => (
                   <li key={candidate.id}>
-                    <button 
+                    <div 
+                      role="button"
                       onClick={() => handleCandidateClick(candidate)}
-                      className="block w-full text-left hover:bg-gray-50 transition-colors"
+                      className="block w-full text-left hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
@@ -298,6 +378,12 @@ function CandidatesPageContent() {
                                     <span className="mt-1 text-xs font-medium text-red-600 text-center block w-full">{candidate.stage}</span>
                                   )}
                                 </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSelectedCandidate(candidate); setOpenInEdit(true); setIsDialogOpen(true) }}
+                                  className="ml-2 inline-flex items-center px-2.5 py-1.5 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-md bg-indigo-50 hover:bg-indigo-100"
+                                >
+                                  Edit
+                                </button>
                               </div>
                             </div>
                             
@@ -356,7 +442,7 @@ function CandidatesPageContent() {
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -430,6 +516,8 @@ function CandidatesPageContent() {
         candidate={selectedCandidate}
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}
+        onSave={handleSaveCandidate}
+        initialEdit={openInEdit}
       />
     </Layout>
   )

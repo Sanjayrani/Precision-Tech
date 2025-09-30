@@ -20,7 +20,23 @@ export default function SourceCandidatesPage() {
     setIsDialogOpen(false)
   }
 
-  const handleSourcingInitiated = () => {
+  const handleSourcingInitiated = (jobTitle?: string) => {
+    // For multiple jobs, create a sourcing jobs array
+    const existingJobs = sessionStorage.getItem('sourcingJobs')
+    const jobs = existingJobs ? JSON.parse(existingJobs) : []
+    
+    // Add new job to the list
+    const newJob = {
+      id: Date.now().toString(),
+      jobTitle: jobTitle || 'Software Engineer',
+      startTime: Date.now(),
+      totalTime: Math.floor(Math.random() * (7 * 60 - 5 * 60 + 1)) + 5 * 60, // 5-7 minutes
+      isCompleted: false
+    }
+    
+    jobs.push(newJob)
+    sessionStorage.setItem('sourcingJobs', JSON.stringify(jobs))
+    
     // Close the dialog and navigate immediately to Candidates after successful sourcing
     setIsDialogOpen(false)
     router.push('/candidates')
