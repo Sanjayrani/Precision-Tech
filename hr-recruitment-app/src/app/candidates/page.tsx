@@ -373,21 +373,28 @@ function CandidatesPageContent() {
                   >
                     Previous
                   </button>
-                  
-                  {Array.from({ length: totalFilteredPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => { setPage(pageNum); fetchCandidates(pageNum) }}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === pageNum
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                  
+
+                  {/* Windowed page numbers: show up to 5 at a time, sliding with the current page */}
+                  {(() => {
+                    const windowSize = 5
+                    const start = Math.max(1, Math.min(page - 2, totalFilteredPages - windowSize + 1))
+                    const end = Math.min(totalFilteredPages, start + windowSize - 1)
+                    const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i)
+                    return pages.map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => { setPage(pageNum); fetchCandidates(pageNum) }}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          page === pageNum
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))
+                  })()}
+
                   <button
                     onClick={() => { const next = Math.min(totalFilteredPages, page + 1); setPage(next); fetchCandidates(next) }}
                     disabled={page === totalFilteredPages}
