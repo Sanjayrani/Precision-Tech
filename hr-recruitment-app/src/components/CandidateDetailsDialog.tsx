@@ -61,6 +61,28 @@ interface CandidateDetailsDialogProps {
 export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: CandidateDetailsDialogProps) {
   if (!isOpen || !candidate) return null
 
+  const parseBreakdown = (line: string): { label?: string; weightText?: string; scoreText?: string; description?: string } => {
+    const raw = String(line || '').trim()
+    // Pattern example: "Open to Work: 5 - score: 3, description : text"
+    const re = /^\s*([^:]+?)\s*:\s*([^\-\,]+?)\s*(?:-\s*score\s*:\s*([^,]+))?(?:,\s*description\s*:?\s*(.*))?$/i
+    const m = raw.match(re)
+    if (m) {
+      const [, label, weight, score, desc] = m
+      return {
+        label: label?.trim(),
+        weightText: weight?.toString().trim(),
+        scoreText: score?.toString().trim(),
+        description: desc?.toString().trim()
+      }
+    }
+    // Fallback: try simple label: value
+    const m2 = raw.match(/^\s*([^:]+?)\s*:\s*(.*)$/)
+    if (m2) {
+      return { label: m2[1].trim(), description: m2[2].trim() }
+    }
+    return { description: raw }
+  }
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -323,12 +345,41 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                   <Star className="h-5 w-5 mr-2" />
                   Score Breakdown
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {candidate.score_breakdown.filter((s) => typeof s === 'string' && s.trim().length > 0).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
-                      <span className="text-sm text-gray-700 truncate pr-2">{item}</span>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {candidate.score_breakdown
+                    .filter((s) => typeof s === 'string' && s.trim().length > 0)
+                    .map((line, idx) => {
+                      const parsed = parseBreakdown(line)
+                      return (
+                        <div
+                          key={idx}
+                          className="bg-white rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow transition-shadow"
+                        >
+                          {(parsed.label || parsed.weightText || parsed.scoreText) && (
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-gray-900 mr-2 truncate">
+                                {parsed.label || 'Detail'}
+                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {parsed.weightText && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                    Weight: {parsed.weightText}
+                                  </span>
+                                )}
+                                {parsed.scoreText && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-800 border border-green-200">
+                                    Score: {parsed.scoreText}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
+                            {parsed.description || line}
+                          </p>
+                        </div>
+                      )
+                    })}
                 </div>
               </div>
             )}

@@ -8,7 +8,6 @@ export async function POST(request: Request) {
       candidate_phone,
       job_title,
       message,
-      row_id,
     } = body
 
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -20,8 +19,8 @@ export async function POST(request: Request) {
       throw new Error("Missing required parameters")
     }
 
-    if (!candidate_phone || !message || !row_id) {
-      throw new Error("Missing required fields: candidate_phone, message and row_id are required")
+    if (!candidate_phone || !message) {
+      throw new Error("Missing required fields: candidate_phone and message are required")
     }
 
     const url = `https://api.wexa.ai/execute_flow?projectID=${projectId}`
@@ -29,13 +28,12 @@ export async function POST(request: Request) {
     const requestBody = {
       agentflow_id,
       executed_by,
-      goal: `Send WhatsApp message using template row_id: ${row_id}\nCandidate: ${candidate_name || 'candidate'}\nPhone: ${candidate_phone}\nJob: ${job_title || 'the opportunity'}\n\nMessage:\n${message}`,
+      goal: `Send WhatsApp message\nCandidate: ${candidate_name || 'candidate'}\nPhone: ${candidate_phone}\nJob: ${job_title || 'the opportunity'}\n\nMessage:\n${message}`,
       input_variables: {
         candidate_name: candidate_name || "",
         candidate_phone,
         job_title: job_title || "",
         message,
-        row_id,
         action: "whatsapp_send",
         timestamp: new Date().toISOString(),
         created_by: "system",

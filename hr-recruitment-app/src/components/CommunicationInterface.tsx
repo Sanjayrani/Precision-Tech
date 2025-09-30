@@ -116,6 +116,7 @@ interface Conversation {
   candidateName: string
   jobTitle: string
   contact: string
+  phone?: string
   taskId: string
   messages: Message[]
   lastMessage: string
@@ -165,7 +166,7 @@ export default function CommunicationInterface({ candidates, loading }: Communic
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
-  const [waMessage, setWaMessage] = useState('Hi, is this a good time to chat regarding the opportunity?')
+  const [waMessage, setWaMessage] = useState('')
 
   const [conversations, setConversations] = useState<Conversation[]>([])
 
@@ -359,6 +360,7 @@ type OverallNestedBranch = {
             candidateName: candidate.candidateName,
             jobTitle: candidate.currentJobTitle || 'Position',
             contact: candidate.phoneNumber || candidate.email,
+            phone: candidate.phoneNumber || '',
             taskId: candidate.job?.title || candidate.jobsMapped || 'Position', // Show only job title
             messages,
             lastMessage: lastMessage?.content || 'No messages',
@@ -493,9 +495,14 @@ type OverallNestedBranch = {
                     <MoreHorizontal className="h-5 w-5 text-gray-600" />
                   </button>
                   <button
-                    className="ml-2 px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center"
-                    onClick={() => setShowWhatsAppModal(true)}
+                    className={`ml-2 px-3 py-1 rounded-lg flex items-center ${selectedConv.phone ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                    onClick={() => {
+                      if (!selectedConv.phone) return
+                      setWaMessage('')
+                      setShowWhatsAppModal(true)
+                    }}
                     title="Send WhatsApp"
+                    disabled={!selectedConv.phone}
                   >
                     <MessageSquare className="h-4 w-4 mr-1" /> WhatsApp
                   </button>
@@ -613,19 +620,23 @@ type OverallNestedBranch = {
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowWhatsAppModal(false)} />
             <div className="relative bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
-              <h4 className="text-lg font-semibold mb-4">Send WhatsApp Message</h4>
+              <h4 className="text-lg font-semibold mb-4 text-black">Send WhatsApp Message</h4>
               <div className="space-y-3 mb-4">
                 <div className="text-sm text-gray-600">
-                  To: <span className="font-medium">{selectedConv.candidateName}</span> — <span>{selectedConv.contact}</span>
+                  To: <span className="font-medium">{selectedConv.candidateName}</span> — <span>{selectedConv.phone || 'No phone'}</span>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">Message</label>
                   <textarea
-                    className="w-full border border-gray-300 rounded-lg p-2 h-28 focus:ring-2 focus:ring-green-600 focus:border-green-600"
+                    className="w-full border border-gray-300 rounded-lg p-2 h-28 focus:ring-2 focus:ring-green-600 focus:border-green-600 placeholder-gray-400 text-gray-900"
                     value={waMessage}
                     onChange={(e) => setWaMessage(e.target.value)}
+                    placeholder="Type your WhatsApp message..."
                   />
                 </div>
+                {!selectedConv.phone && (
+                  <div className="text-sm text-red-600">Don't have contact number to send WhatsApp message</div>
+                )}
               </div>
               <div className="flex justify-end space-x-2">
                 <button
@@ -635,12 +646,11 @@ type OverallNestedBranch = {
                   Cancel
                 </button>
                 <button
-                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                  className={`px-4 py-2 rounded-lg ${selectedConv.phone ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
                   onClick={async () => {
                     try {
-                      const rowId = prompt('Enter template row_id to use for WhatsApp') || ''
-                      if (!rowId.trim()) {
-                        alert('row_id is required')
+                      if (!selectedConv.phone) {
+                        alert("Don't have contact number to send WhatsApp message")
                         return
                       }
                       const res = await fetch('/api/communications/whatsapp-send', {
@@ -648,10 +658,9 @@ type OverallNestedBranch = {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           candidate_name: selectedConv.candidateName,
-                          candidate_phone: selectedConv.contact,
+                          candidate_phone: selectedConv.phone,
                           job_title: selectedConv.jobTitle,
                           message: waMessage,
-                          row_id: rowId.trim(),
                         }),
                       })
                       if (!res.ok) throw new Error('Failed to trigger WhatsApp sender')
@@ -661,6 +670,7 @@ type OverallNestedBranch = {
                       alert('Failed to trigger WhatsApp sender')
                     }
                   }}
+                  disabled={!selectedConv.phone}
                 >
                   Send
                 </button>
