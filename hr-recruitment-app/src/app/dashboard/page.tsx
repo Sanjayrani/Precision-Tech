@@ -150,7 +150,7 @@ function DashboardContent() {
         console.log('Interview scheduled candidates data received:', interviewsData)
         if (interviewsData.success) {
           const meetingScheduledCandidates = interviewsData.candidates || []
-          console.log('Meeting Scheduled candidates:', meetingScheduledCandidates.map((c: any) => ({ 
+          console.log('Meeting Scheduled candidates:', meetingScheduledCandidates.map((c: Candidate) => ({ 
             name: c.candidateName, 
             status: c.status, 
             interviewDate: c.interviewDate,

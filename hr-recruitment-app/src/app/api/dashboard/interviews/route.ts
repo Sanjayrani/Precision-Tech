@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { htmlToPlainText } from "@/lib/formatHtml"
 
 // Normalize various date formats to ISO string
@@ -37,7 +37,7 @@ const normalizeDateToISO = (input: unknown): string => {
   return new Date().toISOString()
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
     const tableId = process.env.NEXT_PUBLIC_CANDIDATES_TABLE_ID
@@ -129,116 +129,119 @@ export async function GET(request: NextRequest) {
     }
 
     // Map candidates and filter for "Meeting Scheduled" status
-    const mappedCandidates = allRecords?.map((record: any, index: number) => ({
-      id: record.candidate_id || record._id || `candidate-${index + 1}`,
-      candidateName: record.candidate_name || record.Candidate_Name || record.name || `Candidate ${index + 1}`,
-      email: record.candidate_email || record.Candidate_Email || record.email || "",
-      phoneNumber: record.phone_number || record.Phone_Number || record.phoneNumber || "",
-      linkedinUrl: record.candidate_linkedin_url || record.Candidate_LinkedIn_URL || record.linkedinUrl || "",
-      skills: String(record.skills || record.Skills || record.skillSet || ""),
-      experience: String(record.experience || record.Experience || record.experienceLevel || ""),
-      certifications: String(record.certifications || record.Certifications || record.certificates || ""),
-      projects: String(record.projects || record.Projects || record.projectPortfolio || ""),
-      miscellaneousInformation: String(record.miscellaneous_information || record.Miscellaneous_Information || record.additionalInfo || ""),
-      candidateScore: record.candidate_score || record.Candidate_Score || record.score || 0,
-      scoreDescription: String(record.score_description || record.Score_Description || record.scoreDetails || ""),
-      score_breakdown: (() => {
-        const raw = (record.score_breakdown ?? record.Score_Breakdown ?? record.scoreBreakdown ?? record.ScoreBreakDown) as unknown
-        if (Array.isArray(raw)) {
-          return raw
-            .map((item) => {
-              if (typeof item === 'string') return htmlToPlainText(item).trim()
+    const mappedCandidates = allRecords?.map((record: unknown, index: number) => {
+      const rec = record as Record<string, unknown>
+      return {
+        id: rec.candidate_id || rec._id || `candidate-${index + 1}`,
+        candidateName: rec.candidate_name || rec.Candidate_Name || rec.name || `Candidate ${index + 1}`,
+        email: rec.candidate_email || rec.Candidate_Email || rec.email || "",
+        phoneNumber: rec.phone_number || rec.Phone_Number || rec.phoneNumber || "",
+        linkedinUrl: rec.candidate_linkedin_url || rec.Candidate_LinkedIn_URL || rec.linkedinUrl || "",
+        skills: String(rec.skills || rec.Skills || rec.skillSet || ""),
+        experience: String(rec.experience || rec.Experience || rec.experienceLevel || ""),
+        certifications: String(rec.certifications || rec.Certifications || rec.certificates || ""),
+        projects: String(rec.projects || rec.Projects || rec.projectPortfolio || ""),
+        miscellaneousInformation: String(rec.miscellaneous_information || rec.Miscellaneous_Information || rec.additionalInfo || ""),
+        candidateScore: rec.candidate_score || rec.Candidate_Score || rec.score || 0,
+        scoreDescription: String(rec.score_description || rec.Score_Description || rec.scoreDetails || ""),
+        score_breakdown: (() => {
+          const raw = (rec.score_breakdown ?? rec.Score_Breakdown ?? rec.scoreBreakdown ?? rec.ScoreBreakDown) as unknown
+          if (Array.isArray(raw)) {
+            return raw
+              .map((item) => {
+                if (typeof item === 'string') return htmlToPlainText(item).trim()
+                if (item && typeof item === 'object') {
+                  const obj = item as Record<string, unknown>
+                  const label = (obj.label || obj.name || obj.key || obj.criterion || obj.category) as string | undefined
+                  const value = (obj.value || obj.score || obj.weight || obj.percent || obj.percentage) as unknown
+                  if (label != null && (value !== undefined && value !== null && value !== '')) {
+                    return `${String(label)}: ${String(value)}`.trim()
+                  }
+                  try {
+                    return htmlToPlainText(JSON.stringify(obj))
+                  } catch {
+                    return ''
+                  }
+                }
+                return ''
+              })
+              .filter((s) => typeof s === 'string' && s.length > 0)
+          }
+          if (typeof raw === 'string') {
+            const cleaned = htmlToPlainText(raw).trim()
+            return cleaned ? [cleaned] : []
+          }
+          return []
+        })(),
+        jobsMapped: rec.jobs_mapped || rec.Jobs_Mapped || rec.mappedJobs || "",
+        currentJobTitle: rec.current_job_title || rec.Current_Job_Title || rec.currentPosition || "",
+        currentEmployer: rec.current_employer || rec.Current_Employer || rec.currentCompany || "",
+        openToWork: rec.open_to_work || rec.Open_To_Work || rec.availableForWork || true,
+        education: rec.education || rec.Education || rec.educationalBackground || "",
+        endorsements: rec.endorsements || rec.Endorsements || rec.recommendations || "",
+        overallMessages: (() => {
+          const raw = (rec.overall_messages ?? rec.Overall_Messages) as unknown
+          if (Array.isArray(raw)) {
+            return raw.map((item: unknown) => {
+              if (typeof item === 'string') return htmlToPlainText(item)
               if (item && typeof item === 'object') {
-                const obj = item as Record<string, unknown>
-                const label = (obj.label || obj.name || obj.key || obj.criterion || obj.category) as string | undefined
-                const value = (obj.value || obj.score || obj.weight || obj.percent || obj.percentage) as unknown
-                if (label != null && (value !== undefined && value !== null && value !== '')) {
-                  return `${String(label)}: ${String(value)}`.trim()
+                const obj = { ...(item as Record<string, unknown>) }
+                const keysToClean = ['message', 'content', 'text', 'body', 'value'] as const
+                for (const key of keysToClean) {
+                  const val = obj[key]
+                  if (typeof val === 'string') {
+                    obj[key] = htmlToPlainText(val)
+                  }
                 }
-                try {
-                  return htmlToPlainText(JSON.stringify(obj))
-                } catch {
-                  return ''
-                }
+                return obj
               }
-              return ''
+              return item
             })
-            .filter((s) => typeof s === 'string' && s.length > 0)
-        }
-        if (typeof raw === 'string') {
-          const cleaned = htmlToPlainText(raw).trim()
-          return cleaned ? [cleaned] : []
-        }
-        return []
-      })(),
-      jobsMapped: record.jobs_mapped || record.Jobs_Mapped || record.mappedJobs || "",
-      currentJobTitle: record.current_job_title || record.Current_Job_Title || record.currentPosition || "",
-      currentEmployer: record.current_employer || record.Current_Employer || record.currentCompany || "",
-      openToWork: record.open_to_work || record.Open_To_Work || record.availableForWork || true,
-      education: record.education || record.Education || record.educationalBackground || "",
-      endorsements: record.endorsements || record.Endorsements || record.recommendations || "",
-      overallMessages: (() => {
-        const raw = (record.overall_messages ?? record.Overall_Messages) as unknown
-        if (Array.isArray(raw)) {
-          return raw.map((item: unknown) => {
-            if (typeof item === 'string') return htmlToPlainText(item)
-            if (item && typeof item === 'object') {
-              const obj = { ...(item as Record<string, unknown>) }
-              const keysToClean = ['message', 'content', 'text', 'body', 'value'] as const
-              for (const key of keysToClean) {
-                const val = obj[key]
-                if (typeof val === 'string') {
-                  obj[key] = htmlToPlainText(val)
-                }
-              }
-              return obj
-            }
-            return item
-          })
-        }
-        if (typeof raw === 'string') {
-          return htmlToPlainText(raw)
-        }
-        return []
-      })(),
-      followUpCount: record.follow_up_count || record.Follow_Up_Count || record.followUpAttempts || 0,
-      candidateLocation: record.candidate_location || record.Candidate_Location || record.location || "",
-      lastContactedDate: record.last_contacted_on || record.Last_Contacted_On || record.last_contacted_date || record.Last_Contacted_Date || record.lastContact || "",
-      providerId: record.provider_id || record.Provider_ID || record.sourceProvider || "",
-      linkedinMessageRead: record.linkedin_message_read || record.LinkedIn_Message_Read || record.linkedinReadStatus || false,
-      jobId: record.Job_id || record.Job_ID || record.associatedJob || "",
-      replyStatus: record.reply_status || record.Reply_Status || record.responseStatus || "",
-      emailMessageRead: record.email_message_read || record.Email_Message_Read || record.emailReadStatus || false,
-      linkedinMessage: record.linkedin_message || record.LinkedIn_Message || record.lastLinkedInMessage || "",
-      meetingLink: record.meeting_link || record.Meeting_Link || record.interviewLink || "",
-      meetingDate: record.meeting_date || record.Meeting_Date || record.interviewDate || "",
-      eventId: record.event_id || record.Event_ID || record.calendarEventId || "",
-      emailProviderId: record.email_provider_id || record.Email_Provider_ID || record.emailServiceProvider || "",
-      subject: record.subject || record.Subject || record.messageSubject || "",
-      status: record.status || record.Status || record.candidateStatus,
-      stage: record.stage || record.Stage || record.candidate_stage || record.Candidate_Stage || "",
-      interviewDate: record.meeting_date || record.Meeting_Date || record.interviewDate || null,
-      createdAt: normalizeDateToISO(record.created_at || record.Created_At || record.createdAt),
-      job: (() => {
-        const jid = record.Job_id || record.Job_ID || record.associatedJob || ""
-        const fromMap = jid ? jobMap.get(String(jid)) : null
-        return {
-          id: jid,
-          title: fromMap?.title || record.jobs_mapped || record.Jobs_Mapped || "Job Title",
-          companyName: fromMap?.companyName || record.current_employer || record.Current_Employer || record.currentCompany || "Company"
-        }
-      })()
-    })) || []
+          }
+          if (typeof raw === 'string') {
+            return htmlToPlainText(raw)
+          }
+          return []
+        })(),
+        followUpCount: rec.follow_up_count || rec.Follow_Up_Count || rec.followUpAttempts || 0,
+        candidateLocation: rec.candidate_location || rec.Candidate_Location || rec.location || "",
+        lastContactedDate: rec.last_contacted_on || rec.Last_Contacted_On || rec.last_contacted_date || rec.Last_Contacted_Date || rec.lastContact || "",
+        providerId: rec.provider_id || rec.Provider_ID || rec.sourceProvider || "",
+        linkedinMessageRead: rec.linkedin_message_read || rec.LinkedIn_Message_Read || rec.linkedinReadStatus || false,
+        jobId: rec.Job_id || rec.Job_ID || rec.associatedJob || "",
+        replyStatus: rec.reply_status || rec.Reply_Status || rec.responseStatus || "",
+        emailMessageRead: rec.email_message_read || rec.Email_Message_Read || rec.emailReadStatus || false,
+        linkedinMessage: rec.linkedin_message || rec.LinkedIn_Message || rec.lastLinkedInMessage || "",
+        meetingLink: rec.meeting_link || rec.Meeting_Link || rec.interviewLink || "",
+        meetingDate: rec.meeting_date || rec.Meeting_Date || rec.interviewDate || "",
+        eventId: rec.event_id || rec.Event_ID || rec.calendarEventId || "",
+        emailProviderId: rec.email_provider_id || rec.Email_Provider_ID || rec.emailServiceProvider || "",
+        subject: rec.subject || rec.Subject || rec.messageSubject || "",
+        status: rec.status || rec.Status || rec.candidateStatus,
+        stage: rec.stage || rec.Stage || rec.candidate_stage || rec.Candidate_Stage || "",
+        interviewDate: rec.meeting_date || rec.Meeting_Date || rec.interviewDate || null,
+        createdAt: normalizeDateToISO(rec.created_at || rec.Created_At || rec.createdAt),
+        job: (() => {
+          const jid = rec.Job_id || rec.Job_ID || rec.associatedJob || ""
+          const fromMap = jid ? jobMap.get(String(jid)) : null
+          return {
+            id: jid,
+            title: fromMap?.title || rec.jobs_mapped || rec.Jobs_Mapped || "Job Title",
+            companyName: fromMap?.companyName || rec.current_employer || rec.Current_Employer || rec.currentCompany || "Company"
+          }
+        })()
+      }
+    }) || []
 
     // Filter specifically for "Meeting Scheduled" status
-    const meetingScheduledCandidates = mappedCandidates.filter(candidate => {
+    const meetingScheduledCandidates = mappedCandidates.filter((candidate: Record<string, unknown>) => {
       const status = candidate.status || ""
       console.log(`Checking candidate ${candidate.candidateName}: status="${status}"`)
       return status === "Meeting Scheduled"
     })
 
     console.log(`Found ${meetingScheduledCandidates.length} candidates with "Meeting Scheduled" status`)
-    console.log("Meeting Scheduled candidates:", meetingScheduledCandidates.map(c => ({
+    console.log("Meeting Scheduled candidates:", meetingScheduledCandidates.map((c: Record<string, unknown>) => ({
       name: c.candidateName,
       status: c.status,
       interviewDate: c.interviewDate,
