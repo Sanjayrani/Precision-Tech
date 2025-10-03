@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import CreateJobDialog from '@/components/CreateJobDialog'
@@ -27,6 +27,7 @@ interface Candidate {
   email: string
   status: string
   interviewDate: string | null
+  meetingDate?: string | null
   job: {
     title: string
     companyName: string
@@ -42,6 +43,57 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8">
+              <div className="flex justify-between items-center py-6">
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Hireverse Dashboard</h1>
+                  <p className="text-gray-600 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto py-8 px-6 lg:px-8">
+            {/* Initial Loading State */}
+            <div className="space-y-8">
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-full mb-8">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 mb-4">Initializing Dashboard</h3>
+                <p className="text-gray-600 mb-8">Setting up your recruitment workspace...</p>
+                <div className="grid grid-cols-1 gap-4 text-sm text-gray-500 max-w-lg mx-auto">
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                    Connecting to recruitment database
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                    Loading dashboard components
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3"></div>
+                    Preparing analytics dashboard
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </Layout>
+    }>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardContent() {
   const [activeJobs, setActiveJobs] = useState<Job[]>([])
   const [scheduledInterviews, setScheduledInterviews] = useState<Candidate[]>([])
   const [stats, setStats] = useState<DashboardStats>({
@@ -61,10 +113,10 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [dashboardRes, statsRes, candidatesRes] = await Promise.all([
+      const [dashboardRes, statsRes, interviewsRes] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/dashboard/stats'),
-        fetch('/api/candidates-candidatestable')
+        fetch('/api/dashboard/interviews')
       ])
 
       if (dashboardRes.ok) {
@@ -93,14 +145,25 @@ export default function Dashboard() {
         }
       }
 
-      if (candidatesRes.ok) {
-        const candidatesData = await candidatesRes.json()
-        if (candidatesData.success) {
-          // Filter candidates with status "Interview Scheduled" (case sensitive)
-          const scheduledCandidates = candidatesData.candidates?.filter((candidate: Candidate) => 
-            candidate.status === "Interview Scheduled" || candidate.status === "Meeting Scheduled"
-          ) || []
-          setScheduledInterviews(scheduledCandidates)
+      if (interviewsRes.ok) {
+        const interviewsData = await interviewsRes.json()
+        console.log('Interview scheduled candidates data received:', interviewsData)
+        if (interviewsData.success) {
+          const meetingScheduledCandidates = interviewsData.candidates || []
+          console.log('Meeting Scheduled candidates:', meetingScheduledCandidates.map((c: any) => ({ 
+            name: c.candidateName, 
+            status: c.status, 
+            interviewDate: c.interviewDate,
+            meetingDate: c.meetingDate 
+          })))
+          
+          setScheduledInterviews(meetingScheduledCandidates)
+          
+          // Update stats with the actual count of scheduled interviews
+          setStats(prevStats => ({
+            ...prevStats,
+            todayInterviews: meetingScheduledCandidates.length
+          }))
         }
       }
     } catch (error) {
@@ -164,9 +227,131 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading dashboard...</div>
+      <Layout>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8">
+              <div className="flex justify-between items-center py-6">
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Hireverse Dashboard</h1>
+                  <p className="text-gray-600 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto py-8 px-6 lg:px-8">
+            {/* Loading State */}
+            <div className="space-y-8">
+              {/* Loading Header */}
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Loading Dashboard</h3>
+                <p className="text-gray-600 mb-6">Fetching your recruitment data and analytics...</p>
+                <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 max-w-md mx-auto">
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Retrieving job statistics
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Loading candidate data
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Preparing interview schedules
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Cards Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 animate-pulse">
+                    <div className="p-6">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <div className="p-3 bg-gray-200 rounded-lg">
+                            <div className="h-6 w-6 bg-gray-300 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="ml-4 w-0 flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                          <div className="h-8 bg-gray-200 rounded w-12"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Content Sections Skeleton */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Active Jobs Skeleton */}
+                <div className="bg-white shadow-lg rounded-xl border border-gray-100 animate-pulse">
+                  <div className="px-6 py-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="h-6 bg-gray-200 rounded w-24"></div>
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div className="space-y-4">
+                      {[...Array(3)].map((_, index) => (
+                        <div key={index} className="bg-gray-50 border-l-4 border-gray-200 p-4 rounded-r-lg">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interviews Skeleton */}
+                <div className="bg-white shadow-lg rounded-xl border border-gray-100 animate-pulse">
+                  <div className="px-6 py-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="h-6 bg-gray-200 rounded w-32"></div>
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div className="space-y-4">
+                      {[...Array(2)].map((_, index) => (
+                        <div key={index} className="bg-gray-50 border-l-4 border-gray-200 p-4 rounded-r-lg">
+                          <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions Skeleton */}
+              <div className="bg-white shadow-lg rounded-xl border border-gray-100 animate-pulse">
+                <div className="px-6 py-6">
+                  <div className="h-6 bg-gray-200 rounded w-24 mb-6"></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, index) => (
+                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                        <div className="flex items-center">
+                          <div className="p-2 bg-gray-200 rounded-lg mr-3">
+                            <div className="h-5 w-5 bg-gray-300 rounded"></div>
+                          </div>
+                          <div className="h-4 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
       </div>
+      </Layout>
     )
   }
 
@@ -339,9 +524,9 @@ export default function Dashboard() {
                           <h4 className="text-base font-semibold text-gray-900">{candidate.candidateName}</h4>
                           <p className="text-sm text-gray-600 font-medium">{candidate.job.title} at {candidate.job.companyName}</p>
                           <p className="text-xs text-gray-500 mt-1">{candidate.email}</p>
-                          {candidate.interviewDate && (
+                          {(candidate.interviewDate || candidate.meetingDate) && (
                             <p className="text-xs text-blue-600 mt-1">
-                              Interview: {formatDate(candidate.interviewDate)}
+                              Interview: {formatDate(candidate.interviewDate || candidate.meetingDate || "")}
                             </p>
                           )}
                         </div>
