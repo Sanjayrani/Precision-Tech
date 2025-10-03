@@ -65,6 +65,7 @@ interface CandidateDetailsDialogProps {
 export default function CandidateDetailsDialog({ candidate, isOpen, onClose, onSave, initialEdit = false }: CandidateDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState<boolean>(initialEdit)
   const [editData, setEditData] = useState<Candidate>(candidate || {} as Candidate)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
 
   useEffect(() => {
     if (candidate) {
@@ -530,15 +531,36 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose, onS
                   <>
                     <button
                       onClick={() => { setIsEditing(false); setEditData(candidate) }}
-                      className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      disabled={isSaving}
+                      className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel Edit
                     </button>
                     <button
-                      onClick={() => { onSave && onSave(editData); setIsEditing(false) }}
-                      className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                      onClick={async () => { 
+                        if (onSave) {
+                          setIsSaving(true)
+                          try {
+                            await onSave(editData)
+                            setIsEditing(false)
+                          } catch (error) {
+                            console.error("Error saving candidate:", error)
+                          } finally {
+                            setIsSaving(false)
+                          }
+                        }
+                      }}
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     >
-                      Save
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save'
+                      )}
                     </button>
                   </>
                 )}

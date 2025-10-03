@@ -178,15 +178,43 @@ function CandidatesPageContent() {
     setIsDialogOpen(true)
   }
 
-  const handleSaveCandidate = (updated: Candidate) => {
-    // Optimistic UI update
-    setCandidates(prev => prev.map(c => c.id === updated.id ? updated : c))
-    // Persist via API if available (fallback: no-op)
-    fetch('/api/candidates', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated)
-    }).catch(() => {})
+  const handleSaveCandidate = async (updated: Candidate) => {
+    try {
+      console.log("Updating candidate:", updated)
+      
+      // Show loading state (you could add a loading state here)
+      const response = await fetch('/api/candidates', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log("Candidate updated successfully:", result)
+        
+        // Update the candidates list with the updated data
+        setCandidates(prev => prev.map(c => c.id === updated.id ? updated : c))
+        
+        // Close the dialog
+        setIsDialogOpen(false)
+        setSelectedCandidate(null)
+        setOpenInEdit(false)
+        
+        // Show success message (you could add a toast notification here)
+        alert("Candidate updated successfully!")
+        
+        // Refresh the candidates list to ensure data consistency
+        fetchCandidates(page)
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to update candidate:", errorData)
+        alert(`Failed to update candidate: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error("Error updating candidate:", error)
+      alert("Failed to update candidate. Please try again.")
+    }
   }
 
   const handleCloseDialog = () => {
@@ -342,8 +370,75 @@ function CandidatesPageContent() {
 
         {/* Candidates List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="text-lg">Loading candidates...</div>
+          <div className="space-y-6">
+            {/* Loading Header */}
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-full mb-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Candidates</h3>
+              <p className="text-sm text-gray-600">Fetching candidate data from the database...</p>
+            </div>
+            
+            {/* Skeleton Loaders */}
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                  <div className="px-4 py-4 sm:px-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                          <div className="flex space-x-2">
+                            <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                            <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                          </div>
+                        </div>
+                        <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-2 sm:flex sm:justify-between">
+                      <div className="sm:flex sm:space-x-6">
+                        <div className="flex items-center mb-2 sm:mb-0">
+                          <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-40"></div>
+                        </div>
+                        <div className="flex items-center mb-2 sm:mb-0">
+                          <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-28"></div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                        <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex space-x-4">
+                        <div className="h-4 bg-gray-200 rounded w-20"></div>
+                        <div className="h-4 bg-gray-200 rounded w-16"></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                        <div className="h-3 bg-gray-200 rounded w-20"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <>
@@ -527,10 +622,104 @@ export default function CandidatesPage() {
   return (
     <Suspense fallback={
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading candidates...</p>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <div className="bg-white shadow">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Candidate Management</h1>
+                  <p className="text-gray-600">Track and manage all your candidates</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Loading State */}
+            <div className="space-y-6">
+              <div className="text-center py-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">Loading Candidates</h3>
+                <p className="text-gray-600 mb-6">Fetching candidate data from the database...</p>
+                <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 max-w-md mx-auto">
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Retrieving candidate information
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Processing communication data
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    Preparing candidate list
+                  </div>
+                </div>
+              </div>
+              
+              {/* Skeleton Loaders */}
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                    <div className="px-4 py-4 sm:px-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                            <div className="flex space-x-2">
+                              <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                              <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                            </div>
+                          </div>
+                          <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2 sm:flex sm:justify-between">
+                        <div className="sm:flex sm:space-x-6">
+                          <div className="flex items-center mb-2 sm:mb-0">
+                            <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-40"></div>
+                          </div>
+                          <div className="flex items-center mb-2 sm:mb-0">
+                            <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-32"></div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-28"></div>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                          <div className="h-4 w-4 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                      
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex space-x-4">
+                          <div className="h-4 bg-gray-200 rounded w-20"></div>
+                          <div className="h-4 bg-gray-200 rounded w-16"></div>
+                        </div>
+                        <div className="text-right">
+                          <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                          <div className="h-3 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Layout>
