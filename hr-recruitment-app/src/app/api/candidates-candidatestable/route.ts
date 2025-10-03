@@ -249,10 +249,19 @@ export async function GET(request: NextRequest) {
       })()
     })) || []
 
+    // Sort latest to oldest using createdAt when available, otherwise stable fallback
+    const sortedCandidates = [...mappedCandidates].sort((a, b) => {
+      const ad = a.createdAt ? new Date(String(a.createdAt)) : null as unknown as Date | null
+      const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
+      const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
+      const bt = bd && !isNaN(bd.getTime()) ? bd.getTime() : 0
+      return bt - at
+    })
+
     // Slice for requested page/limit on our side
     const start = (page - 1) * limit
     const end = start + limit
-    const pageCandidates = mappedCandidates.slice(start, end)
+    const pageCandidates = sortedCandidates.slice(start, end)
 
     // Use the correct total count from WEXA API
     const totalCount = totalCountAll || mappedCandidates.length

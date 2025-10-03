@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { X, Mail, Phone, MapPin, Calendar, Star, ExternalLink, User, Briefcase, Award, BookOpen, CheckCircle, Users } from 'lucide-react'
 
 interface Candidate {
@@ -43,6 +44,7 @@ interface Candidate {
   emailProviderId: string
   subject: string
   status: string
+  stage: string
   interviewDate: string | null
   createdAt: string
   job: {
@@ -56,10 +58,27 @@ interface CandidateDetailsDialogProps {
   candidate: Candidate | null
   isOpen: boolean
   onClose: () => void
+  onSave?: (updated: Candidate) => void
+  initialEdit?: boolean
 }
 
-export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: CandidateDetailsDialogProps) {
+export default function CandidateDetailsDialog({ candidate, isOpen, onClose, onSave, initialEdit = false }: CandidateDetailsDialogProps) {
+  const [isEditing, setIsEditing] = useState<boolean>(initialEdit)
+  const [editData, setEditData] = useState<Candidate>(candidate || {} as Candidate)
+
+  useEffect(() => {
+    if (candidate) {
+      setEditData(candidate)
+      setIsEditing(initialEdit)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candidate])
+
   if (!isOpen || !candidate) return null
+
+  const handleFieldChange = (field: keyof Candidate, value: unknown) => {
+    setEditData(prev => ({ ...prev, [field]: value } as Candidate))
+  }
 
   const parseBreakdown = (line: string): { label?: string; weightText?: string; scoreText?: string; description?: string } => {
     const raw = String(line || '').trim()
@@ -155,16 +174,16 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                   <User className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{candidate.candidateName}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{isEditing ? editData.candidateName : candidate.candidateName}</h2>
                   <div className="flex items-center space-x-4 mt-1">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(candidate.status)}`}>
-                      {candidate.status ? candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1) : 'Unknown'}
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(isEditing ? editData.status : candidate.status)}`}>
+                      {(isEditing ? editData.status : candidate.status) ? (isEditing ? editData.status : candidate.status)!.charAt(0).toUpperCase() + (isEditing ? editData.status : candidate.status)!.slice(1) : 'Unknown'}
                     </span>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getScoreColor(candidate.candidateScore)}`}>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getScoreColor(isEditing ? editData.candidateScore : candidate.candidateScore)}`}>
                       <Star className="h-4 w-4 mr-1" />
-                      {candidate.candidateScore}/100
+                      {(isEditing ? editData.candidateScore : candidate.candidateScore)}/100
                     </div>
-                    {candidate.openToWork && (
+                    {(isEditing ? editData.openToWork : candidate.openToWork) && (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Open to Work
@@ -181,6 +200,78 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
               </button>
             </div>
           </div>
+
+          {/* Simple inline edit form */}
+          {isEditing && (
+            <div className="px-6 pt-6">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <input
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.candidateName}
+                    onChange={(e) => handleFieldChange('candidateName', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.email}
+                    onChange={(e) => handleFieldChange('email', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.phoneNumber || ''}
+                    onChange={(e) => handleFieldChange('phoneNumber', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.candidateLocation || ''}
+                    onChange={(e) => handleFieldChange('candidateLocation', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <select
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.status || ''}
+                    onChange={(e) => handleFieldChange('status', e.target.value)}
+                  >
+                    <option value="">Unknown</option>
+                    <option value="Interview Scheduled">Interview Scheduled</option>
+                    <option value="Shortlisted">Shortlisted</option>
+                    <option value="Selected">Selected</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Sourced">Sourced</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Stage</label>
+                  <input
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.stage || ''}
+                    onChange={(e) => handleFieldChange('stage', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Interview Date</label>
+                  <input
+                    type="datetime-local"
+                    className="mt-1 w-full border rounded-md px-3 py-2 text-gray-900"
+                    value={editData.interviewDate ? new Date(editData.interviewDate).toISOString().slice(0,16) : ''}
+                    onChange={(e) => handleFieldChange('interviewDate', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Content */}
           <div className="p-6 space-y-6">
@@ -427,11 +518,30 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose }: C
                 >
                   Close
                 </button>
-                <button
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  Contact Candidate
-                </button>
+                {!isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+                {isEditing && (
+                  <>
+                    <button
+                      onClick={() => { setIsEditing(false); setEditData(candidate) }}
+                      className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel Edit
+                    </button>
+                    <button
+                      onClick={() => { onSave && onSave(editData); setIsEditing(false) }}
+                      className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                    >
+                      Save
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

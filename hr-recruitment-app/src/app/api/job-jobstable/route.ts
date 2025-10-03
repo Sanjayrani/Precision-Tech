@@ -245,10 +245,17 @@ export async function GET() {
       }
     }) || []
 
+    // Sort jobs by postedDate (latest to oldest)
+      const sortedJobs = mappedJobs.sort((a: { postedDate: string }, b: { postedDate: string }) => {
+      const dateA = new Date(a.postedDate).getTime()
+      const dateB = new Date(b.postedDate).getTime()
+      return dateB - dateA // Latest first
+    })
+
     return NextResponse.json({
       success: true,
-      jobs: mappedJobs,
-      totalCount: data.total_count || mappedJobs.length,
+      jobs: sortedJobs,
+      totalCount: data.total_count || sortedJobs.length,
       message: "Jobs fetched successfully from Wexa table"
     })
 

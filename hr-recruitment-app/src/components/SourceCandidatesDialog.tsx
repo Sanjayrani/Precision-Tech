@@ -14,7 +14,7 @@ interface Job {
 interface SourceCandidatesDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSourcingInitiated: () => void
+  onSourcingInitiated: (jobTitle?: string) => void
 }
 
 export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInitiated }: SourceCandidatesDialogProps) {
@@ -82,8 +82,8 @@ export default function SourceCandidatesDialog({ isOpen, onClose, onSourcingInit
       const data = await response.json()
 
       if (response.ok && data.success) {
-        // Notify parent immediately to navigate to Candidates
-        onSourcingInitiated()
+        // Notify parent immediately to navigate to Candidates with job title
+        onSourcingInitiated(sourcingData.job_title)
         return
       } else {
         setError(data.error || 'Failed to initiate candidate sourcing')
