@@ -245,9 +245,38 @@ export async function GET() {
       }
     }) || []
 
+    // Sort jobs by job_id in descending order (highest job_id first)
+    const parseJobId = (id: string): number => {
+      // Extract numeric part from job_id (e.g., "101" from "job-101" or just "101")
+      const match = String(id).match(/\d+/)
+      return match ? parseInt(match[0], 10) : 0
+    }
+    
+    // Debug: Log the job IDs being sorted
+    console.log("Jobs before sorting:", mappedJobs.map((job: any) => ({
+      title: job.title,
+      id: job.id,
+      parsedId: parseJobId(job.id)
+    })))
+    
+    const sortedJobs = [...mappedJobs].sort((a, b) => {
+      const aId = parseJobId(a.id)
+      const bId = parseJobId(b.id)
+      
+      // Sort by job_id descending (highest first)
+      return bId - aId
+    })
+    
+    // Debug: Log the sorted order
+    console.log("Jobs after sorting:", sortedJobs.map((job: any) => ({
+      title: job.title,
+      id: job.id,
+      parsedId: parseJobId(job.id)
+    })))
+
     return NextResponse.json({
       success: true,
-      jobs: mappedJobs,
+      jobs: sortedJobs,
       totalCount: data.total_count || mappedJobs.length,
       message: "Jobs fetched successfully from Wexa table"
     })

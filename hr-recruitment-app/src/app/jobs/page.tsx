@@ -364,19 +364,79 @@ function JobsPageContent() {
                     Previous
                   </button>
                   
-                  {Array.from({ length: totalFilteredPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === pageNum
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
+                  {(() => {
+                    const maxVisiblePages = 5
+                    const halfVisible = Math.floor(maxVisiblePages / 2)
+                    
+                    let startPage = Math.max(1, page - halfVisible)
+                    let endPage = Math.min(totalFilteredPages, startPage + maxVisiblePages - 1)
+                    
+                    // Adjust start if we're near the end
+                    if (endPage - startPage + 1 < maxVisiblePages) {
+                      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+                    }
+                    
+                    const pages = []
+                    
+                    // Add first page and ellipsis if needed
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => setPage(1)}
+                          className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                        >
+                          1
+                        </button>
+                      )
+                      if (startPage > 2) {
+                        pages.push(
+                          <span key="ellipsis-start" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        )
+                      }
+                    }
+                    
+                    // Add visible page range
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => setPage(i)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            page === i
+                              ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      )
+                    }
+                    
+                    // Add ellipsis and last page if needed
+                    if (endPage < totalFilteredPages) {
+                      if (endPage < totalFilteredPages - 1) {
+                        pages.push(
+                          <span key="ellipsis-end" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        )
+                      }
+                      pages.push(
+                        <button
+                          key={totalFilteredPages}
+                          onClick={() => setPage(totalFilteredPages)}
+                          className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                        >
+                          {totalFilteredPages}
+                        </button>
+                      )
+                    }
+                    
+                    return pages
+                  })()}
                   
                   <button
                     onClick={() => setPage(Math.min(totalFilteredPages, page + 1))}
