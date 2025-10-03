@@ -535,7 +535,31 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose, onS
                       Cancel Edit
                     </button>
                     <button
-                      onClick={() => { onSave && onSave(editData); setIsEditing(false) }}
+                      onClick={() => {
+                        try {
+                          // Fire-and-forget: trigger candidate update process flow with modified data + linkedin_url
+                          const requestData = {
+                            linkedin_url: candidate?.linkedinUrl || '',
+                            candidate_name: editData?.candidateName || '',
+                            email: editData?.email || null,
+                            phone_number: editData?.phoneNumber || null,
+                            location: editData?.candidateLocation || null,
+                            status: editData?.status || null,
+                            stage: editData?.stage || null,
+                            interview_date: editData?.interviewDate || null,
+                          }
+                          if (requestData.linkedin_url) {
+                            fetch('/api/candidates/update', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(requestData)
+                            }).catch(() => {})
+                          }
+                        } catch {}
+                        // Optimistic UI: persist local changes in parent and close dialog
+                        onSave && onSave(editData)
+                        setIsEditing(false)
+                      }}
                       className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
                     >
                       Save
