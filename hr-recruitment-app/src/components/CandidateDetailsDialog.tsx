@@ -537,17 +537,48 @@ export default function CandidateDetailsDialog({ candidate, isOpen, onClose, onS
                       Cancel Edit
                     </button>
                     <button
-                      onClick={async () => { 
-                        if (onSave) {
-                          setIsSaving(true)
-                          try {
+                      onClick={async () => {
+                        setIsSaving(true)
+                        try {
+                          if (onSave) {
                             await onSave(editData)
-                            setIsEditing(false)
-                          } catch (error) {
-                            console.error("Error saving candidate:", error)
-                          } finally {
-                            setIsSaving(false)
+                          } else {
+                            // Default: call our API to trigger WEXA candidate update flow
+                            const response = await fetch('/api/candidate-update', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                id: editData.id,
+                                candidateName: editData.candidateName,
+                                email: editData.email,
+                                phoneNumber: editData.phoneNumber,
+                                linkedinUrl: editData.linkedinUrl,
+                                candidateLocation: editData.candidateLocation,
+                                status: editData.status,
+                                stage: editData.stage,
+                                interviewDate: editData.interviewDate,
+                                currentJobTitle: editData.currentJobTitle,
+                                currentEmployer: editData.currentEmployer,
+                                skills: editData.skills,
+                                experience: editData.experience,
+                                education: editData.education,
+                                projects: editData.projects,
+                                certifications: editData.certifications,
+                                endorsements: editData.endorsements,
+                                openToWork: editData.openToWork,
+                                jobId: editData.job?.id,
+                              }),
+                            })
+                            if (!response.ok) {
+                              const errText = await response.text()
+                              throw new Error(`Failed to update candidate: ${errText}`)
+                            }
                           }
+                          setIsEditing(false)
+                        } catch (error) {
+                          console.error('Error saving candidate:', error)
+                        } finally {
+                          setIsSaving(false)
                         }
                       }}
                       disabled={isSaving}

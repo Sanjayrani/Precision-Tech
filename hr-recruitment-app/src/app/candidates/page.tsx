@@ -180,40 +180,47 @@ function CandidatesPageContent() {
 
   const handleSaveCandidate = async (updated: Candidate) => {
     try {
-      console.log("Updating candidate:", updated)
-      
-      // Show loading state (you could add a loading state here)
-      const response = await fetch('/api/candidates', {
-        method: 'PUT',
+      console.log("Triggering candidate-update flow:", updated)
+      const response = await fetch('/api/candidate-update', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
+        body: JSON.stringify({
+          id: updated.id,
+          candidateName: updated.candidateName,
+          email: updated.email,
+          phoneNumber: updated.phoneNumber,
+          linkedinUrl: updated.linkedinUrl,
+          candidateLocation: updated.candidateLocation,
+          status: updated.status,
+          stage: updated.stage,
+          interviewDate: updated.interviewDate,
+          currentJobTitle: updated.currentJobTitle,
+          currentEmployer: updated.currentEmployer,
+          skills: updated.skills,
+          experience: updated.experience,
+          education: updated.education,
+          projects: updated.projects,
+          certifications: updated.certifications,
+          endorsements: updated.endorsements,
+          openToWork: updated.openToWork,
+          jobId: updated.job?.id,
+        })
       })
 
       if (response.ok) {
-        const result = await response.json()
-        console.log("Candidate updated successfully:", result)
-        
-        // Update the candidates list with the updated data
+        // Optimistically update list and close dialog without popups
         setCandidates(prev => prev.map(c => c.id === updated.id ? updated : c))
-        
-        // Close the dialog
         setIsDialogOpen(false)
         setSelectedCandidate(null)
         setOpenInEdit(false)
-        
-        // Show success message (you could add a toast notification here)
-        alert("Candidate updated successfully!")
-        
-        // Refresh the candidates list to ensure data consistency
+        // Refresh to ensure latest data
         fetchCandidates(page)
       } else {
-        const errorData = await response.json()
-        console.error("Failed to update candidate:", errorData)
-        alert(`Failed to update candidate: ${errorData.error || 'Unknown error'}`)
+        const errorText = await response.text()
+        console.error('candidate-update failed:', errorText)
       }
     } catch (error) {
-      console.error("Error updating candidate:", error)
-      alert("Failed to update candidate. Please try again.")
+      console.error('Error calling candidate-update:', error)
     }
   }
 
