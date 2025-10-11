@@ -1,6 +1,6 @@
 'use client'
 
-import { X, MapPin, Calendar, Users, Mail, Briefcase, Building, Clock, Target } from 'lucide-react'
+import { X, MapPin, Calendar, Users, Mail, Briefcase, Building, Clock, Target, Edit3, Hash } from 'lucide-react'
 
 interface Job {
   id: string
@@ -35,9 +35,10 @@ interface JobDetailsDialogProps {
   job: Job | null
   isOpen: boolean
   onClose: () => void
+  onEdit?: (job: Job) => void
 }
 
-export default function JobDetailsDialog({ job, isOpen, onClose }: JobDetailsDialogProps) {
+export default function JobDetailsDialog({ job, isOpen, onClose, onEdit }: JobDetailsDialogProps) {
   if (!isOpen || !job) return null
 
   const formatDate = (dateString: string) => {
@@ -94,7 +95,11 @@ export default function JobDetailsDialog({ job, isOpen, onClose }: JobDetailsDia
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{job.title}</h2>
-                <div className="flex items-center space-x-4 mt-1">
+                <div className="flex items-center space-x-2 mt-1 mb-2">
+                  <Hash className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-600">Job ID: {job.id}</span>
+                </div>
+                <div className="flex items-center space-x-4">
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getModeColor(job.mode)}`}>
                     <span className="mr-1">{getModeIcon(job.mode)}</span>
                     {job.mode.charAt(0).toUpperCase() + job.mode.slice(1)}
@@ -268,6 +273,15 @@ export default function JobDetailsDialog({ job, isOpen, onClose }: JobDetailsDia
               >
                 Close
               </button>
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(job)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit Job
+                </button>
+              )}
               <button
                 className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
               >
