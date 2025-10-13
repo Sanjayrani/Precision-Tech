@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const jobsTableId = process.env.NEXT_PUBLIC_JOBS_TABLE_ID
     const apiKey = process.env.NEXT_PUBLIC_SECRET_ID
 
-    console.log("Fetching candidates for communications from Wexa API...")
+    console.log("Fetching ALL candidates for communications from Wexa API...")
     console.log("Candidates Table ID:", tableId)
 
     // Check if required parameters are set
@@ -161,10 +161,12 @@ export async function GET(request: NextRequest) {
       return false
     }
     
-    // Map ALL records to match the candidates schema (include those without overall_messages as well)
+    // Map ALL records to match the candidates schema (no filtering by overall_messages)
     const mappedCandidates = candidatesRecords
       ?.map((record: unknown, index: number) => {
         const rec = record as Record<string, unknown>
+        const hasMessages = hasValidOverallMessages(rec)
+        
         return {
       id: rec.candidate_id || rec._id || `candidate-${index + 1}`,
       candidateName: rec.candidate_name || rec.Candidate_Name || rec.name || `Candidate ${index + 1}`,
@@ -280,6 +282,13 @@ export async function GET(request: NextRequest) {
       stage: rec.stage || rec.Stage || rec.candidate_stage || rec.Candidate_Stage || "",
       interviewDate: rec.meeting_date || rec.Meeting_Date || rec.interviewDate || null,
       createdAt: rec.created_at || rec.Created_At || rec.createdAt || "",
+      // Add metadata about whether this candidate has messages
+      hasMessages: hasMessages,
+      messageCount: (() => {
+        if (!hasMessages) return 0
+        const rawOverall = (rec.overall_messages ?? rec.Overall_Messages) as unknown
+        return Array.isArray(rawOverall) ? rawOverall.length : 1
+      })(),
       job: (() => {
         const jid = rec.Job_id || rec.Job_ID || rec.associatedJob || ""
         const fromMap = jid ? jobMap.get(String(jid)) : null
@@ -292,21 +301,27 @@ export async function GET(request: NextRequest) {
       }
     }) || []
 
-    // Sort latest to oldest using createdAt when available, otherwise stable fallback
-    // Apply search across all candidates if provided
-    const filteredCandidates = searchQuery
-      ? mappedCandidates.filter((c: any) => {
-          const q = searchQuery.toLowerCase()
+    // Apply search filter if search query is provided
+    const filteredCandidates = searchQuery 
+      ? mappedCandidates.filter((candidate: {
+          candidateName?: string
+          email?: string
+          phoneNumber?: string
+          currentJobTitle?: string
+          currentEmployer?: string
+        }) => {
+          const query = searchQuery.toLowerCase()
           return (
-            (c.candidateName?.toLowerCase() || '').includes(q) ||
-            (c.email?.toLowerCase() || '').includes(q) ||
-            (c.phoneNumber?.toLowerCase() || '').includes(q) ||
-            (c.currentJobTitle?.toLowerCase() || '').includes(q) ||
-            (c.currentEmployer?.toLowerCase() || '').includes(q)
+            (candidate.candidateName?.toLowerCase() || '').includes(query) ||
+            (candidate.email?.toLowerCase() || '').includes(query) ||
+            (candidate.phoneNumber?.toLowerCase() || '').includes(query) ||
+            (candidate.currentJobTitle?.toLowerCase() || '').includes(query) ||
+            (candidate.currentEmployer?.toLowerCase() || '').includes(query)
           )
         })
       : mappedCandidates
 
+    // Sort latest to oldest using createdAt when available, otherwise stable fallback
     const sortedCandidates = [...filteredCandidates].sort((a, b) => {
       const ad = a.createdAt ? new Date(String(a.createdAt)) : null as unknown as Date | null
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
@@ -329,7 +344,10 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       slice: `${start}-${end}`,
-      filteredFromTotal: candidatesRecords.length
+      totalFromAPI: candidatesRecords.length,
+      searchQuery,
+      withMessages: filteredCandidates.filter((c: { hasMessages: boolean }) => c.hasMessages).length,
+      withoutMessages: filteredCandidates.filter((c: { hasMessages: boolean }) => !c.hasMessages).length
     })
     
     return NextResponse.json({
@@ -338,14 +356,22 @@ export async function GET(request: NextRequest) {
       totalCount,
       page,
       limit,
-      message: "Communication candidates fetched successfully from Wexa table"
+      message: searchQuery 
+        ? `Found ${totalCount} candidates matching "${searchQuery}"`
+        : "All candidates fetched successfully from Wexa table",
+      // Important: Stats should always reflect the full dataset, not the search subset
+      stats: {
+        totalCandidates: mappedCandidates.length,
+        withMessages: mappedCandidates.filter((c: { hasMessages: boolean }) => c.hasMessages).length,
+        withoutMessages: mappedCandidates.filter((c: { hasMessages: boolean }) => !c.hasMessages).length
+      }
     })
 
   } catch (error) {
-    console.error("Error fetching communication candidates from Wexa AI:", error)
+    console.error("Error fetching all candidates from Wexa AI:", error)
     return NextResponse.json(
       { 
-        error: "Failed to fetch communication candidates from Wexa table",
+        error: "Failed to fetch all candidates from Wexa table",
         details: error instanceof Error ? error.message : "Unknown error"
       }, 
       { status: 500 }

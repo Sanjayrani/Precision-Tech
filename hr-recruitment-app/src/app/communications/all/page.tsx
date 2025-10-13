@@ -31,6 +31,8 @@ interface Candidate {
   subject: string
   replyStatus: string
   jobsMapped: string
+  hasMessages: boolean
+  messageCount: number
   job: {
     id: string
     title: string
@@ -38,7 +40,7 @@ interface Candidate {
   }
 }
 
-export default function CommunicationsPage() {
+export default function AllCommunicationsPage() {
   return (
     <Suspense fallback={
       <div className="flex h-screen bg-gray-50">
@@ -46,17 +48,17 @@ export default function CommunicationsPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading communications...</p>
+            <p className="text-gray-600">Loading all candidates...</p>
           </div>
         </div>
       </div>
     }>
-      <CommunicationsPageContent />
+      <AllCommunicationsPageContent />
     </Suspense>
   )
 }
 
-function CommunicationsPageContent() {
+function AllCommunicationsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [candidates, setCandidates] = useState<Candidate[]>([])
@@ -65,6 +67,7 @@ function CommunicationsPageContent() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [pageSize, setPageSize] = useState(20)
+  const [stats, setStats] = useState<{totalCandidates: number, withMessages: number, withoutMessages: number} | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
@@ -89,6 +92,7 @@ function CommunicationsPageContent() {
   // React to search query changes in URL (set by child input)
   useEffect(() => {
     const q = searchParams.get('search') || ''
+    // If query changed, reset to page 1 and fetch
     setSearchQuery(q)
     fetchCandidates(1, q)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,17 +101,17 @@ function CommunicationsPageContent() {
   const fetchCandidates = async (p: number, search = '') => {
     try {
       setLoading(true)
-      // Clear existing candidates so the UI shows a clean loading state
       setCandidates([])
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
-      const response = await fetch(`/api/communications/candidates?page=${p}&limit=20${searchParam}`)
+      const response = await fetch(`/api/communications/candidates-all?page=${p}&limit=20${searchParam}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('Communication API Response:', { 
+        console.log('All Candidates API Response:', { 
           page: p, 
           candidatesCount: data.candidates?.length, 
           totalCount: data.totalCount,
           limit: data.limit,
+          stats: data.stats,
           search
         })
         // Use the server-provided page of candidates as-is
@@ -121,9 +125,10 @@ function CommunicationsPageContent() {
         console.log('Pagination calculation:', { total, serverLimit, calculatedPages })
         setTotalPages(calculatedPages)
         setTotalCount(total)
+        setStats(data.stats || null)
       }
     } catch (error) {
-      console.error('Error fetching communication candidates:', error)
+      console.error('Error fetching all candidates:', error)
     } finally {
       setLoading(false)
     }
@@ -136,24 +141,49 @@ function CommunicationsPageContent() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    setPage(1)
+    setPage(1) // Reset to first page on new search
     fetchCandidates(1, query)
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1">
-        <CommunicationInterface 
-          candidates={candidates}
-          loading={loading}
-          page={page}
-          totalPages={totalPages}
-          totalCount={totalCount}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-          onSearch={handleSearch}
-        />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Stats Header */}
+        {stats && (
+          <div className="bg-blue-50 border-b border-blue-200 p-3 flex-shrink-0">
+            <div className="max-w-7xl mx-auto">
+              <h2 className="text-base font-semibold text-blue-900 mb-2">All Candidates Overview</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="bg-white p-2 rounded-lg border border-blue-200">
+                  <div className="text-blue-600 font-medium text-xs">Total Candidates</div>
+                  <div className="text-xl font-bold text-blue-900">{stats.totalCandidates}</div>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-green-200">
+                  <div className="text-green-600 font-medium text-xs">Candidates Communicated</div>
+                  <div className="text-xl font-bold text-green-900">{stats.withMessages}</div>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-orange-200">
+                  <div className="text-orange-600 font-medium text-xs">Candidates to be Communicated</div>
+                  <div className="text-xl font-bold text-orange-900">{stats.withoutMessages}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex-1 overflow-hidden">
+          <CommunicationInterface 
+            candidates={candidates}
+            loading={loading}
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onSearch={handleSearch}
+          />
+        </div>
       </div>
     </div>
   )

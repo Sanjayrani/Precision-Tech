@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Phone, MoreHorizontal, Send, User, Building2, MessageSquare } from 'lucide-react'
 
 // Normalize message text so that literal "\n" becomes real newlines and spacing is preserved
@@ -122,6 +123,8 @@ interface Conversation {
   lastMessage: string
   lastMessageTime: string
   unreadCount: number
+  hasMessages: boolean
+  messageCount: number
 }
 
 interface OverallMessage {
@@ -163,10 +166,13 @@ interface CommunicationInterfaceProps {
   page: number
   totalPages: number
   totalCount: number
+  pageSize?: number
   onPageChange: (page: number) => void
 }
 
-export default function CommunicationInterface({ candidates, loading, page, totalPages, totalCount, onPageChange }: CommunicationInterfaceProps) {
+export default function CommunicationInterface({ candidates, loading, page, totalPages, totalCount, pageSize = 10, onPageChange }: CommunicationInterfaceProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
@@ -174,6 +180,39 @@ export default function CommunicationInterface({ candidates, loading, page, tota
   const [waMessage, setWaMessage] = useState('')
 
   const [conversations, setConversations] = useState<Conversation[]>([])
+
+  // Sync local search box with URL (?search=...)
+  useEffect(() => {
+    const q = searchParams.get('search') || ''
+    setSearchQuery(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // When user types in search, update URL and reset to page 1. Do nothing if value already matches URL to avoid loops.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(Array.from(searchParams.entries()))
+      const current = params.get('search') || ''
+      const next = (searchQuery || '').trim()
+      const pageInUrl = params.get('page') || '1'
+      if (current !== next || pageInUrl !== '1') {
+        if (next.length > 0) params.set('search', next)
+        else params.delete('search')
+        params.set('page', '1')
+        router.replace(`?${params.toString()}`)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
+
+  // Clear any previous conversations immediately while loading to avoid stale UI
+  useEffect(() => {
+    if (loading) {
+      setConversations([])
+      setSelectedConversation(null)
+    }
+  }, [loading])
 
   // Extract content and metadata from prefixed strings like:
   // "Candidate - LinkedIn : hello" or "Recruiter - Mail : Hi"
@@ -266,7 +305,7 @@ type OverallNestedBranch = {
 
       const candidateConversations = sortedCandidates
         .filter(candidate => {
-          // All candidates from the API already have valid overall_messages
+          // Include all candidates, whether they have messages or not
           return true
         })
         .map(candidate => {
@@ -365,9 +404,11 @@ type OverallNestedBranch = {
             phone: candidate.phoneNumber || '',
             taskId: candidate.job?.title || candidate.jobsMapped || 'Position', // Show only job title
             messages,
-            lastMessage: lastMessage?.content || 'No messages',
-            lastMessageTime: lastMessage ? formatTimestamp(lastMessage.timestamp) : '',
-            unreadCount: messages.filter(m => m.sender === 'candidate' && !m.isRead).length
+            lastMessage: lastMessage?.content || (messages.length === 0 ? 'No communication history' : 'No messages'),
+            lastMessageTime: lastMessage ? formatTimestamp(lastMessage.timestamp) : (candidate.createdAt ? formatTimestamp(candidate.createdAt) : ''),
+            unreadCount: messages.filter(m => m.sender === 'candidate' && !m.isRead).length,
+            hasMessages: messages.length > 0,
+            messageCount: messages.length
           }
         })
       
@@ -414,85 +455,75 @@ type OverallNestedBranch = {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-full bg-gray-50 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full overflow-hidden">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Building2 className="h-5 w-5 mr-2 text-blue-600" />
-                Candidate Communications
-              </h2>
+              <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-48 animate-pulse"></div>
             </div>
             
-            {/* Search */}
+            {/* Search Skeleton */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search candidates by name, email, or job title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 text-black"
-                disabled
-              />
+              <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
             </div>
           </div>
 
-          {/* Loading State with Skeleton */}
-          <div className="flex-1 p-4 space-y-4">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Communications</h3>
-              <p className="text-sm text-gray-600">Fetching candidate conversations...</p>
-            </div>
-            
-            {/* Skeleton Loaders */}
-            {[...Array(3)].map((_, index) => (
-              <div key={index} className="animate-pulse">
-                <div className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+          {/* Candidate List Skeleton */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="p-4 border-b border-gray-100 animate-pulse">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 bg-gray-300 rounded w-32"></div>
+                    <div className="h-5 bg-orange-200 rounded-full w-20"></div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded w-32"></div>
-                    <div className="h-3 bg-gray-200 rounded w-28"></div>
-                    <div className="h-3 bg-gray-200 rounded w-full"></div>
-                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-16"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  <div className="h-3 bg-gray-200 rounded w-5/6"></div>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Pagination Skeleton */}
+          <div className="bg-white border-t-2 border-gray-300 p-3 flex-shrink-0">
+            <div className="flex flex-col gap-2">
+              <div className="h-4 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+                <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center max-w-md">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
-                <MessageSquare className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Welcome to Communications</h3>
-              <p className="text-gray-600 mb-6">Select a candidate from the sidebar to view and manage your conversations</p>
-              <div className="grid grid-cols-1 gap-3 text-sm text-gray-500">
-                <div className="flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                  View conversation history
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                  Send new messages
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                  Track communication status
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="text-center max-w-md p-8">
+              <div className="relative inline-flex items-center justify-center mb-6">
+                <div className="absolute w-20 h-20 bg-blue-200 rounded-full animate-ping opacity-20"></div>
+                <div className="relative inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full shadow-lg">
+                  <MessageSquare className="h-8 w-8 text-white" />
                 </div>
               </div>
+              <div className="space-y-3 mb-6">
+                <div className="h-6 bg-gray-300 rounded w-48 mx-auto animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-64 mx-auto animate-pulse"></div>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+              <p className="text-sm text-gray-600 mt-4 font-medium">Loading candidate communications...</p>
             </div>
           </div>
         </div>
@@ -501,9 +532,9 @@ type OverallNestedBranch = {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-full bg-gray-50">
       {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -527,10 +558,12 @@ type OverallNestedBranch = {
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conversation) => (
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {filteredConversations.length === 0 ? (
+            <div className="p-6 text-sm text-gray-500">No candidates to display</div>
+          ) : filteredConversations.map((conversation, index) => (
             <div
-              key={conversation.id}
+              key={conversation.candidateId || `${conversation.id}-${index}`}
               onClick={() => setSelectedConversation(conversation.id)}
               className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                 selectedConversation === conversation.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
@@ -539,14 +572,27 @@ type OverallNestedBranch = {
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-gray-900">{conversation.id}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-gray-900">{conversation.id}</h3>
+                      {conversation.hasMessages ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {conversation.messageCount} message{conversation.messageCount !== 1 ? 's' : ''}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          No messages
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-gray-500 ml-2 shrink-0 whitespace-nowrap">{conversation.lastMessageTime}</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-1">Candidate: {conversation.candidateName}</p>
                   <p className="text-sm text-gray-600 mb-1">Contact: {conversation.contact}</p>
                   <p className="text-sm text-gray-600 mb-1">Job: {conversation.taskId}</p>
                   <p
-                    className="text-sm text-gray-500 w-full leading-snug pr-6"
+                    className={`text-sm w-full leading-snug pr-6 ${
+                      conversation.hasMessages ? 'text-gray-500' : 'text-orange-500 italic'
+                    }`}
                     style={{
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
@@ -562,100 +608,32 @@ type OverallNestedBranch = {
           ))}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="border-t border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, totalCount)} of {totalCount} candidates
+        {/* Pagination - Fixed at Bottom */}
+        {totalCount > 0 && (
+          <div className="bg-white border-t-2 border-gray-300 p-3 flex-shrink-0 shadow-sm">
+            <div className="flex flex-col gap-2">
+              <div className="text-sm text-gray-700 font-medium text-center">
+                {(() => {
+                  const start = (page - 1) * pageSize + 1
+                  const end = Math.min(page * pageSize, totalCount)
+                  return `Showing ${start} to ${end} of ${totalCount} candidates`
+                })()}
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between gap-2">
                 <button
+                  aria-label="Previous page"
                   onClick={() => onPageChange(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
                 >
                   Previous
                 </button>
-                
-                {(() => {
-                  const maxVisiblePages = 5
-                  const halfVisible = Math.floor(maxVisiblePages / 2)
-                  
-                  let startPage = Math.max(1, page - halfVisible)
-                  const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-                  
-                  // Adjust start if we're near the end
-                  if (endPage - startPage + 1 < maxVisiblePages) {
-                    startPage = Math.max(1, endPage - maxVisiblePages + 1)
-                  }
-                  
-                  const pages = []
-                  
-                  // Add first page and ellipsis if needed
-                  if (startPage > 1) {
-                    pages.push(
-                      <button
-                        key={1}
-                        onClick={() => onPageChange(1)}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        1
-                      </button>
-                    )
-                    if (startPage > 2) {
-                      pages.push(
-                        <span key="ellipsis-start" className="px-3 py-1 text-sm text-gray-500">
-                          ...
-                        </span>
-                      )
-                    }
-                  }
-                  
-                  // Add visible page range
-                  for (let i = startPage; i <= endPage; i++) {
-                    pages.push(
-                      <button
-                        key={i}
-                        onClick={() => onPageChange(i)}
-                        className={`px-3 py-1 text-sm border rounded-md ${
-                          page === i
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {i}
-                      </button>
-                    )
-                  }
-                  
-                  // Add ellipsis and last page if needed
-                  if (endPage < totalPages) {
-                    if (endPage < totalPages - 1) {
-                      pages.push(
-                        <span key="ellipsis-end" className="px-3 py-1 text-sm text-gray-500">
-                          ...
-                        </span>
-                      )
-                    }
-                    pages.push(
-                      <button
-                        key={totalPages}
-                        onClick={() => onPageChange(totalPages)}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        {totalPages}
-                      </button>
-                    )
-                  }
-                  
-                  return pages
-                })()}
-                
+                <span className="text-sm text-gray-700 font-semibold">Page {page} of {totalPages}</span>
                 <button
+                  aria-label="Next page"
                   onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
                 >
                   Next
                 </button>
@@ -666,7 +644,7 @@ type OverallNestedBranch = {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         {selectedConv ? (
           <>
             {/* Chat Header */}
@@ -703,7 +681,7 @@ type OverallNestedBranch = {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
               {selectedConv.messages.length > 0 ? (
                 selectedConv.messages.map((message) => (
                 <div
@@ -752,16 +730,33 @@ type OverallNestedBranch = {
               ))
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <p className="text-gray-500">No messages available for this conversation</p>
-                    <p className="text-gray-400 text-sm mt-2">Start the conversation by sending a message below</p>
+                  <div className="text-center max-w-md">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-6">
+                      <MessageSquare className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">No Communication History</h3>
+                    <p className="text-gray-600 mb-6">This candidate hasn&apos;t been contacted yet. Start the conversation by sending a message below.</p>
+                    <div className="grid grid-cols-1 gap-3 text-sm text-gray-500">
+                      <div className="flex items-center justify-center">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                        Send your first message to this candidate
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                        Track communication status
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                        Build relationship over time
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
               <div className="flex items-center space-x-2">
                 <input
                   type="text"
