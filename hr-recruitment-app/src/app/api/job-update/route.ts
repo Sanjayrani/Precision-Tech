@@ -4,6 +4,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { 
+      job_id,
       job_title, 
       job_description, 
       job_location, 
@@ -26,12 +27,15 @@ export async function POST(request: Request) {
     } = body
 
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
-    const agentflow_id = process.env.NEXT_PUBLIC_WEXA_CREATE_A_JOB
+    const agentflow_id = process.env.NEXT_PUBLIC_JOB_UPDATE
     const apiKey = process.env.NEXT_PUBLIC_SECRET_ID
     const executed_by = process.env.NEXT_PUBLIC_EXECUTED_BY_ID
 
-    console.log("=== JOB CREATION API CALLED ===")
-    console.log("Triggering WEXA job creation process flow...")
+    console.log("=== JOB UPDATE API CALLED ===")
+    console.log("Job ID:", job_id)
+    console.log("Job Title:", job_title)
+    console.log("Company:", company_name)
+    console.log("Triggering WEXA job update process flow...")
 
     // Check if required parameters are set
     if (!projectId || !agentflow_id || !apiKey) {
@@ -39,23 +43,25 @@ export async function POST(request: Request) {
     }
 
     // Validate required fields
-    if (!job_title || !job_description || !job_location || !company_name || !job_mode || !recruiter_name || !recruiter_email || !recruiter_designation) {
-      throw new Error("Missing required job fields: job_title, job_description, job_location, company_name, job_mode, recruiter_name, recruiter_email, and recruiter_designation are required")
+    if (!job_id || !job_title || !job_description || !job_location || !company_name || !job_mode || !recruiter_name || !recruiter_email || !recruiter_designation) {
+      throw new Error("Missing required job fields: job_id, job_title, job_description, job_location, company_name, job_mode, recruiter_name, recruiter_email, and recruiter_designation are required")
     }
 
     const url = `https://api.wexa.ai/execute_flow?projectID=${projectId}`
     const requestBody = {
       agentflow_id: agentflow_id,
       executed_by: executed_by,
-      goal: `Job Title : ${job_title}
-      job_mode : ${job_mode}
-job_description : ${job_description}
-job_location : "${job_location}"
-company_name : ${company_name}
-company_description : ${company_description || "No company description provided"}
-recruiter_name : ${recruiter_name}
+      goal: `Update Job
+job_id: ${job_id}
+job_title: ${job_title}
+job_mode: ${job_mode}
+job_description: ${job_description}
+job_location: "${job_location}"
+company_name: ${company_name}
+company_description: ${company_description || "No company description provided"}
+recruiter_name: ${recruiter_name}
 recruiter_email: ${recruiter_email}
-recruiter_designation : ${recruiter_designation}
+recruiter_designation: ${recruiter_designation}
 
 Candidate Evaluation Weights:
 - Technical Skills: ${technical_skills_weight || 35}
@@ -68,8 +74,11 @@ Candidate Evaluation Weights:
 Threshold Score: ${threshold_score ?? 70}
 ${custom_weights && custom_weights.length > 0 ? `
 Custom Weights:
-${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.name}: ${weight.weight}`).join('\n')}` : ''}`,
+${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.name}: ${weight.weight}`).join('\n')}` : ''}
+
+Please update the job with ID: ${job_id} with the above information.`,
       input_variables: {
+        job_id: job_id,
         job_title: job_title,
         job_description: job_description,
         job_location: job_location,
@@ -89,14 +98,16 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
         education_weight: education_weight || 10,
         threshold_score: (typeof threshold_score === 'number' ? threshold_score : 70),
         custom_weights: custom_weights || [],
-        action: "create_job",
+        action: "update_job",
         timestamp: new Date().toISOString(),
         created_by: "system"
       },
       projectID: projectId
     }
 
-    console.log("=== MAKING WEXA API CALL ===")
+    console.log("=== MAKING WEXA API CALL (JOB UPDATE) ===")
+    console.log("URL:", url)
+    console.log("Request body:", JSON.stringify(requestBody, null, 2))
 
     const response = await fetch(url, {
       method: 'POST',
@@ -107,7 +118,7 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
       body: JSON.stringify(requestBody),
     })
 
-    console.log("=== WEXA API RESPONSE ===")
+    console.log("=== WEXA API RESPONSE (JOB UPDATE) ===")
     console.log("Response status:", response.status)
     console.log("Response ok:", response.ok)
 
@@ -120,19 +131,19 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
     let data = {}
     try {
       data = await response.json()
-      // Redacted verbose API response body from logs
     } catch (jsonError) {
       console.log("Response is not JSON, treating as success")
       data = { success: true }
     }
 
-    console.log("=== JOB CREATION SUCCESS ===")
+    console.log("=== JOB UPDATE SUCCESS ===")
 
     return NextResponse.json({
       success: true,
       data: data,
-      message: "Job creation process flow triggered successfully",
+      message: "Job update process flow triggered successfully",
       job: {
+        job_id,
         job_title,
         job_description,
         job_location,
@@ -152,17 +163,17 @@ ${custom_weights.map((weight: {name: string, weight: number}) => `- ${weight.nam
         education_weight: education_weight || 10,
         threshold_score: (typeof threshold_score === 'number' ? threshold_score : 70),
         custom_weights: custom_weights || [],
-        postedDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
         isActive: true
       }
     })
   } catch (error) {
-    console.error("Error triggering WEXA job creation:", error)
+    console.error("Error triggering WEXA job update:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to trigger job creation",
-        details: error instanceof Error ? error.message : "Unknown error"
+        error: "Failed to trigger job update",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     )

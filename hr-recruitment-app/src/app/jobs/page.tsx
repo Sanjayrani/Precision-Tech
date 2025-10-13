@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import Layout from '@/components/Layout'
 import JobDetailsDialog from '@/components/JobDetailsDialog'
 import CreateJobDialog from '@/components/CreateJobDialog'
-import { Search, Plus, MapPin, Calendar, Users, Target } from 'lucide-react'
+import EditJobDialog from '@/components/EditJobDialog'
+import { Search, Plus, MapPin, Calendar, Users, Target, Edit3 } from 'lucide-react'
 
 interface Job {
   id: string
@@ -62,6 +63,8 @@ function JobsPageContent() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [jobToEdit, setJobToEdit] = useState<Job | null>(null)
 
   useEffect(() => {
     fetchJobs()
@@ -138,6 +141,35 @@ function JobsPageContent() {
   const handleJobCreated = () => {
     // Refresh the jobs list after creating a new job
     fetchJobs()
+  }
+
+  const handleEditJob = (job: Job) => {
+    console.log("=== EDIT JOB CLICKED ===")
+    console.log("Job to edit:", job)
+    console.log("Job ID:", job.id)
+    console.log("Job Title:", job.title)
+    
+    setJobToEdit(job)
+    setIsEditDialogOpen(true)
+    setIsDialogOpen(false) // Close the details dialog
+  }
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false)
+    setJobToEdit(null)
+  }
+
+  const handleJobUpdated = (updatedJob: Job) => {
+    // Update the job in the list
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === updatedJob.id ? updatedJob : job
+      )
+    )
+    // Update selected job if it's the same one
+    if (selectedJob && selectedJob.id === updatedJob.id) {
+      setSelectedJob(updatedJob)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -236,124 +268,134 @@ function JobsPageContent() {
               <ul className="divide-y divide-gray-200">
                 {paginatedJobs.map((job) => (
                   <li key={job.id}>
-                    <button 
-                      onClick={() => handleJobClick(job)}
-                      className="block w-full text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="px-4 py-4 sm:px-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-lg font-medium text-indigo-600 truncate">
-                                  {job.title}
-                                </h3>
-                                <p className="text-xs font-bold text-black mt-1">Job ID: {job.id}</p>
-                              </div>
-                              <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getModeColor(job.mode)}`}>
-                                  {job.mode}
+                    <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <button 
+                          onClick={() => handleJobClick(job)}
+                          className="flex-1 text-left"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-medium text-indigo-600 truncate">
+                                {job.title}
+                              </h3>
+                              <p className="text-xs font-bold text-black mt-1">Job ID: {job.id}</p>
+                            </div>
+                            <div className="ml-2 flex-shrink-0 flex items-center space-x-2">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getModeColor(job.mode)}`}>
+                                {job.mode}
+                              </span>
+                              {job.jobStatus && (
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.jobStatus)}`}>
+                                  {job.jobStatus}
                                 </span>
-                                {job.jobStatus && (
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.jobStatus)}`}>
-                                    {job.jobStatus}
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                        <div className="ml-4 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditJob(job)
+                            }}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Edit Job"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 sm:flex sm:justify-between">
+                        <div className="sm:flex">
+                          <p className="flex items-center text-sm text-gray-500">
+                            <Users className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                            {job.companyName}
+                          </p>
+                          <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                            <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                            {job.location}
+                          </p>
+                        </div>
+                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                          <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                          <p>
+                            Posted on {formatDate(job.postedDate)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-sm text-gray-500 line-clamp-2">
+                          {job.description.substring(0, 150)}...
+                        </p>
+                        <div className="ml-4 flex-shrink-0">
+                          <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {job._count.candidates} candidates
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Weights Display */}
+                      {job.weights && (
+                        <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-100">
+                          <div className="flex items-center mb-2">
+                            <Target className="h-4 w-4 text-indigo-600 mr-2" />
+                            <span className="text-sm font-medium text-indigo-900">Evaluation Weights</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {job.weights.technical_skills_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Tech: {job.weights.technical_skills_weight}
+                              </span>
+                            )}
+                            {job.weights.experience_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Exp: {job.weights.experience_weight}
+                              </span>
+                            )}
+                            {job.weights.soft_skills_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Soft: {job.weights.soft_skills_weight}
+                              </span>
+                            )}
+                            {job.weights.education_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Edu: {job.weights.education_weight}
+                              </span>
+                            )}
+                            {job.weights.job_match_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Match: {job.weights.job_match_weight}
+                              </span>
+                            )}
+                            {job.weights.location_match_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Loc: {job.weights.location_match_weight}
+                              </span>
+                            )}
+                            {job.weights.open_to_work_weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                Open: {job.weights.open_to_work_weight}
+                              </span>
+                            )}
+                            {job.weights.custom_weights && job.weights.custom_weights.length > 0 && (
+                              <>
+                                {job.weights.custom_weights.slice(0, 2).map((customWeight, index) => (
+                                  <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                    {customWeight.name}: {customWeight.weight}
+                                  </span>
+                                ))}
+                                {job.weights.custom_weights.length > 2 && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
+                                    +{job.weights.custom_weights.length - 2} more
                                   </span>
                                 )}
-                              </div>
-                            </div>
-                            <div className="mt-2 sm:flex sm:justify-between">
-                              <div className="sm:flex">
-                                <p className="flex items-center text-sm text-gray-500">
-                                  <Users className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                                  {job.companyName}
-                                </p>
-                                <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                                  <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                                  {job.location}
-                                </p>
-                              </div>
-                              <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                                <p>
-                                  Posted on {formatDate(job.postedDate)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="mt-2 flex items-center justify-between">
-                              <p className="text-sm text-gray-500 line-clamp-2">
-                                {job.description.substring(0, 150)}...
-                              </p>
-                              <div className="ml-4 flex-shrink-0">
-                                <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                                  {job._count.candidates} candidates
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {/* Weights Display */}
-                            {job.weights && (
-                              <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-100">
-                                <div className="flex items-center mb-2">
-                                  <Target className="h-4 w-4 text-indigo-600 mr-2" />
-                                  <span className="text-sm font-medium text-indigo-900">Evaluation Weights</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {job.weights.technical_skills_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Tech: {job.weights.technical_skills_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.experience_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Exp: {job.weights.experience_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.soft_skills_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Soft: {job.weights.soft_skills_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.education_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Edu: {job.weights.education_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.job_match_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Match: {job.weights.job_match_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.location_match_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Loc: {job.weights.location_match_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.open_to_work_weight && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                      Open: {job.weights.open_to_work_weight}
-                                    </span>
-                                  )}
-                                  {job.weights.custom_weights && job.weights.custom_weights.length > 0 && (
-                                    <>
-                                      {job.weights.custom_weights.slice(0, 2).map((customWeight, index) => (
-                                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                          {customWeight.name}: {customWeight.weight}
-                                        </span>
-                                      ))}
-                                      {job.weights.custom_weights.length > 2 && (
-                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-indigo-700 border border-indigo-200">
-                                          +{job.weights.custom_weights.length - 2} more
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              </div>
+                              </>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -427,6 +469,7 @@ function JobsPageContent() {
         job={selectedJob}
         isOpen={isDialogOpen}
         onClose={handleCloseDialog}
+        onEdit={handleEditJob}
       />
 
       {/* Create Job Dialog */}
@@ -434,6 +477,14 @@ function JobsPageContent() {
         isOpen={isCreateDialogOpen}
         onClose={handleCloseCreateDialog}
         onJobCreated={handleJobCreated}
+      />
+
+      {/* Edit Job Dialog */}
+      <EditJobDialog
+        job={jobToEdit}
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseEditDialog}
+        onJobUpdated={handleJobUpdated}
       />
     </Layout>
   )
