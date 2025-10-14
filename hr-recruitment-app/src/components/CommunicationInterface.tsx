@@ -595,7 +595,24 @@ type OverallNestedBranch = {
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-1">Candidate: {conversation.candidateName}</p>
-                  <p className="text-sm text-gray-600 mb-1">Contact: {conversation.contact}</p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Contact: {conversation.contact}
+                    {(() => {
+                      const cand = candidates.find(c => c.id === conversation.candidateId)
+                      // Access without changing TS types
+                      const url = cand && (cand as unknown as Record<string, string>)['linkedinUrl']
+                      if (!url) return null
+                      const href = url.startsWith('http') ? url : `https://${url}`
+                      return (
+                        <>
+                          {' '}|{' '}
+                          <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                            LinkedIn
+                          </a>
+                        </>
+                      )
+                    })()}
+                  </p>
                   <p className="text-sm text-gray-600 mb-1">Job: {conversation.taskId}</p>
                   <p
                     className={`text-sm w-full leading-snug pr-6 ${
@@ -662,6 +679,18 @@ type OverallNestedBranch = {
                   <h3 className="font-semibold text-gray-900">{selectedConv.id}</h3>
                   <p className="text-sm text-gray-600">
                     Candidate: {selectedConv.candidateName} | Contact: {selectedConv.contact}
+                    {(() => {
+                      const cand = candidates.find(c => c.id === selectedConv.candidateId)
+                      const url = cand && (cand as unknown as Record<string, string>)['linkedinUrl']
+                      if (!url) return null
+                      const href = url.startsWith('http') ? url : `https://${url}`
+                      return (
+                        <>
+                          {' '}|{' '}
+                          <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">LinkedIn</a>
+                        </>
+                      )
+                    })()}
                   </p>
                   <p className="text-sm text-gray-600">Job: {selectedConv.taskId}</p>
                 </div>
