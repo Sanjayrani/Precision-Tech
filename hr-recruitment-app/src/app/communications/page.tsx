@@ -89,8 +89,11 @@ function CommunicationsPageContent() {
   // React to search query changes in URL (set by child input)
   useEffect(() => {
     const q = searchParams.get('search') || ''
-    setSearchQuery(q)
-    fetchCandidates(1, q)
+    if (q !== searchQuery) {
+      setSearchQuery(q)
+      setPage(1)
+      fetchCandidates(1, q)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
@@ -100,7 +103,7 @@ function CommunicationsPageContent() {
       // Clear existing candidates so the UI shows a clean loading state
       setCandidates([])
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
-      const response = await fetch(`/api/communications/candidates?page=${p}&limit=20${searchParam}`)
+      const response = await fetch(`/api/communications/candidates?page=${p}&limit=20${searchParam}&_t=${Date.now()}`)
       if (response.ok) {
         const data = await response.json()
         console.log('Communication API Response:', { 

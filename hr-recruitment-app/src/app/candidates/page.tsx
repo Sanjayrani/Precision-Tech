@@ -144,7 +144,7 @@ function CandidatesPageContent() {
       setLoading(true)
       const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
       const statusParam = statusQuery ? `&status=${encodeURIComponent(statusQuery)}` : ''
-      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=10${searchParam}${statusParam}`)
+      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=10${searchParam}${statusParam}&_t=${Date.now()}`)
       if (response.ok) {
         const data = await response.json()
         console.log('API Response:', { 

@@ -92,18 +92,23 @@ function AllCommunicationsPageContent() {
   // React to search query changes in URL (set by child input)
   useEffect(() => {
     const q = searchParams.get('search') || ''
-    // If query changed, reset to page 1 and fetch
-    setSearchQuery(q)
-    fetchCandidates(1, q)
+    if (q !== searchQuery) {
+      setSearchQuery(q)
+      // When search changes, reset to page 1 and fetch
+      setPage(1)
+      fetchCandidates(1, q)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
   const fetchCandidates = async (p: number, search = '') => {
+    const timestamp = Date.now()
+    console.log(`=== FETCHING CANDIDATES === Page: ${p}, Search: "${search}", Timestamp: ${timestamp}`)
     try {
       setLoading(true)
       setCandidates([])
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : ''
-      const response = await fetch(`/api/communications/candidates-all?page=${p}&limit=20${searchParam}`)
+      const response = await fetch(`/api/communications/candidates-all?page=${p}&limit=20${searchParam}&_t=${timestamp}`)
       if (response.ok) {
         const data = await response.json()
         console.log('All Candidates API Response:', { 
@@ -112,7 +117,10 @@ function AllCommunicationsPageContent() {
           totalCount: data.totalCount,
           limit: data.limit,
           stats: data.stats,
-          search
+          search,
+          firstCandidateId: data.candidates?.[0]?.id,
+          lastCandidateId: data.candidates?.[data.candidates.length - 1]?.id,
+          candidateIds: data.candidates?.map((c: any) => c.id).slice(0, 5)
         })
         // Use the server-provided page of candidates as-is
         const pageCandidates = data.candidates || []
@@ -135,6 +143,7 @@ function AllCommunicationsPageContent() {
   }
 
   const handlePageChange = (newPage: number) => {
+    console.log('Page change requested:', { from: page, to: newPage, searchQuery })
     setPage(newPage)
     fetchCandidates(newPage, searchQuery)
   }

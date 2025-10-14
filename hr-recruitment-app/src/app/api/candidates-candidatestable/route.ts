@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const pageParam = parseInt(searchParams.get('page') || '1', 10)
     const limitParam = parseInt(searchParams.get('limit') || '10', 10)
     const searchQuery = searchParams.get('search') || ''
+    const statusQuery = searchParams.get('status') || ''
     const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
     const limit = Number.isNaN(limitParam) || limitParam < 1 ? 10 : Math.min(limitParam, 100)
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest) {
       experience: String(record.experience || record.Experience || record.experienceLevel || ""),
       certifications: String(record.certifications || record.Certifications || record.certificates || ""),
       projects: String(record.projects || record.Projects || record.projectPortfolio || ""),
+      craftedMessage: String(record.crafted_message || record.Crafted_Message || record.craftedMessage || ""),
       miscellaneousInformation: String(record.miscellaneous_information || record.Miscellaneous_Information || record.additionalInfo || ""),
       candidateScore: record.candidate_score || record.Candidate_Score || record.score || 0,
       scoreDescription: String(record.score_description || record.Score_Description || record.scoreDetails || ""),
@@ -251,7 +253,8 @@ export async function GET(request: NextRequest) {
     })) || []
 
     // Apply search filter if search query is provided
-    const filteredCandidates = searchQuery
+    // Apply search and status filters
+    const filteredBySearch = searchQuery
       ? mappedCandidates.filter((candidate: {
           candidateName?: string
           email?: string
@@ -272,12 +275,19 @@ export async function GET(request: NextRequest) {
         })
       : mappedCandidates
 
+    const filteredCandidates = statusQuery
+      ? filteredBySearch.filter((c: { status?: string }) => String(c.status || '').toLowerCase() === statusQuery.toLowerCase())
+      : filteredBySearch
+
     // Sort latest to oldest using createdAt when available, otherwise stable fallback
     const sortedCandidates = [...filteredCandidates].sort((a, b) => {
       const ad = a.createdAt ? new Date(String(a.createdAt)) : null as unknown as Date | null
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
       const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
       const bt = bd && !isNaN(bd.getTime()) ? bd.getTime() : 0
+      if (bt === at) {
+        return String(a.id || '').localeCompare(String(b.id || ''))
+      }
       return bt - at
     })
 
@@ -286,15 +296,19 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const pageCandidates = sortedCandidates.slice(start, end)
 
-    // Use the filtered count for search results, otherwise use the total from WEXA API
-    const totalCount = searchQuery ? filteredCandidates.length : (totalCountAll || mappedCandidates.length)
+    // Always report the count of the filtered set to match displayed results
+    const totalCount = filteredCandidates.length
     
-    console.log('Returning to frontend:', { 
-      candidatesOnPage: pageCandidates.length, 
+    console.log('Returning to frontend (candidates table):', {
+      candidatesOnPage: pageCandidates.length,
       totalCount,
       page,
       limit,
-      slice: `${start}-${end}`
+      slice: `${start}-${end}`,
+      first3Ids: pageCandidates.slice(0,3).map((c:any)=>c.id),
+      last3Ids: pageCandidates.slice(-3).map((c:any)=>c.id),
+      statusQuery,
+      searchQuery
     })
     
     return NextResponse.json({

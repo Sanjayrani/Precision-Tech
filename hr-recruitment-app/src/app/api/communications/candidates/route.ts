@@ -175,6 +175,10 @@ export async function GET(request: NextRequest) {
       experience: String(rec.experience || rec.Experience || rec.experienceLevel || ""),
       certifications: String(rec.certifications || rec.Certifications || rec.certificates || ""),
       projects: String(rec.projects || rec.Projects || rec.projectPortfolio || ""),
+      craftedMessage: String(rec.crafted_message || rec.Crafted_Message || rec.craftedMessage || ""),
+      craftedLinkedinMessage: String(rec.crafted_linkedin_message || rec.Crafted_LinkedIn_Message || rec.craftedLinkedinMessage || rec.craftedLinkedInMessage || ""),
+      craftedWhatsappMessage: String(rec.crafted_whatsapp_message || rec.Crafted_WhatsApp_Message || rec.craftedWhatsappMessage || rec.craftedWhatsAppMessage || ""),
+      messageChannel: String(rec.message_channel || rec.Message_Channel || rec.messageChannel || ""),
       miscellaneousInformation: String(rec.miscellaneous_information || rec.Miscellaneous_Information || rec.additionalInfo || ""),
       candidateScore: rec.candidate_score || rec.Candidate_Score || rec.score || 0,
       scoreDescription: String(rec.score_description || rec.Score_Description || rec.scoreDetails || ""),
@@ -325,33 +329,11 @@ export async function GET(request: NextRequest) {
         (typeof b.overallMessages === 'string' && b.overallMessages.trim() !== '')
       )
       
-      // Debug logging to see what's happening
-      console.log('Sorting candidates:', {
-        a: { 
-          name: a.candidateName, 
-          messages: a.overallMessages, 
-          type: typeof a.overallMessages,
-          isArray: Array.isArray(a.overallMessages), 
-          length: Array.isArray(a.overallMessages) ? a.overallMessages.length : (typeof a.overallMessages === 'string' ? a.overallMessages.length : 'N/A'),
-          hasMessages: aHasMessages 
-        },
-        b: { 
-          name: b.candidateName, 
-          messages: b.overallMessages, 
-          type: typeof b.overallMessages,
-          isArray: Array.isArray(b.overallMessages), 
-          length: Array.isArray(b.overallMessages) ? b.overallMessages.length : (typeof b.overallMessages === 'string' ? b.overallMessages.length : 'N/A'),
-          hasMessages: bHasMessages 
-        }
-      })
-      
       // First sort by message status (those with messages first)
       if (aHasMessages && !bHasMessages) {
-        console.log(`${a.candidateName} (HAS messages) should come before ${b.candidateName} (NO messages)`)
         return -1
       }
       if (!aHasMessages && bHasMessages) {
-        console.log(`${b.candidateName} (HAS messages) should come before ${a.candidateName} (NO messages)`)
         return 1
       }
       
@@ -360,6 +342,12 @@ export async function GET(request: NextRequest) {
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
       const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
       const bt = bd && !isNaN(bd.getTime()) ? bd.getTime() : 0
+      
+      // If dates are the same, sort by ID to ensure consistent ordering
+      if (at === bt) {
+        return (a.id || '').localeCompare(b.id || '')
+      }
+      
       return bt - at
     })
 
@@ -368,8 +356,8 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const pageCandidates = sortedCandidates.slice(start, end)
 
-    // Use the correct total count from filtered results
-    const totalCount = filteredCandidates.length
+    // Use the correct total count from sorted results (same as filtered but sorted)
+    const totalCount = sortedCandidates.length
     
     console.log('Returning to frontend:', { 
       candidatesOnPage: pageCandidates.length, 

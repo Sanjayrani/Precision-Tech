@@ -144,6 +144,7 @@ interface Candidate {
   currentJobTitle: string
   currentEmployer: string
   overallMessages: OverallMessages
+  craftedMessage?: string
   linkedinMessages: number
   emailMessages: number
   lastContactedDate: string
@@ -179,6 +180,7 @@ export default function CommunicationInterface({ candidates, loading, page, tota
   const [newMessage, setNewMessage] = useState('')
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [waMessage, setWaMessage] = useState('')
+  const [handledCrafted, setHandledCrafted] = useState<Record<string, { email?: 'approved' | 'rejected'; linkedin?: 'approved' | 'rejected'; whatsapp?: 'approved' | 'rejected' }>>({})
 
   const [conversations, setConversations] = useState<Conversation[]>([])
 
@@ -432,6 +434,34 @@ type OverallNestedBranch = {
 
   const selectedConv = conversations.find(conv => conv.id === selectedConversation)
 
+  // Append a recruiter message (blue bubble) as the latest message in the open chat
+  const appendRecruiterMessage = (content: string, channel: 'linkedin' | 'mail' | 'whatsapp' = 'linkedin') => {
+    if (!selectedConversation || !content.trim()) return
+    const nowIso = new Date().toISOString()
+    const msg: Message = {
+      id: `msg-${Date.now()}`,
+      content,
+      timestamp: nowIso,
+      sender: 'recruiter',
+      senderName: 'You',
+      channel,
+      isRead: true
+    }
+
+    setConversations(prev => prev.map(conv =>
+      conv.id === selectedConversation
+        ? {
+            ...conv,
+            messages: [...conv.messages, msg],
+            lastMessage: content,
+            lastMessageTime: nowIso,
+            hasMessages: true,
+            messageCount: conv.messageCount + 1
+          }
+        : conv
+    ))
+  }
+
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return
 
@@ -649,16 +679,16 @@ type OverallNestedBranch = {
                   aria-label="Previous page"
                   onClick={() => onPageChange(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-gray-700 font-semibold">Page {page} of {totalPages}</span>
+                <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
                 <button
                   aria-label="Next page"
                   onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -790,6 +820,177 @@ type OverallNestedBranch = {
                   </div>
                 </div>
               )}
+              
+              {(() => {
+                const cand = candidates.find(c => c.id === selectedConv.candidateId)
+                if (!cand) return null
+                const candRec = cand as unknown as Record<string, string>
+                const channelRaw = candRec["messageChannel"] || candRec["message_channel"] || candRec["Message_Channel"] || ''
+                const channelLower = String(channelRaw).toLowerCase()
+                const emailCraft = String(candRec["craftedMessage"] || candRec["crafted_message"] || candRec["Crafted_Message"] || '').trim()
+                const linkedinCraft = String(candRec["craftedLinkedinMessage"] || candRec["crafted_linkedin_message"] || candRec["Crafted_LinkedIn_Message"] || candRec["craftedLinkedInMessage"] || '').trim()
+                const whatsappCraft = String(candRec["craftedWhatsappMessage"] || candRec["crafted_whatsapp_message"] || candRec["Crafted_WhatsApp_Message"] || candRec["craftedWhatsAppMessage"] || '').trim()
+                const liUrlRaw = candRec["linkedinUrl"] || candRec["linkedin"] || candRec["LinkedIn"] || candRec["linkedin_url"] || candRec["linkedinURL"] || ''
+                const linkedinUrl = liUrlRaw ? (String(liUrlRaw).startsWith('http') ? String(liUrlRaw) : `https://${String(liUrlRaw)}`) : ''
+
+                const emailHandled = handledCrafted[selectedConv.candidateId]?.email
+                const linkedinHandled = handledCrafted[selectedConv.candidateId]?.linkedin
+                const whatsappHandled = handledCrafted[selectedConv.candidateId]?.whatsapp
+
+                const hasEmail = channelLower.includes('email') || channelLower.includes('mail')
+                const hasLinkedin = channelLower.includes('linkedin')
+                const hasWhatsapp = channelLower.includes('whatsapp') || channelLower.includes('whats app') || channelLower.includes('wa')
+                const channelMissing = channelLower.trim() === ''
+                
+                // Show crafted messages only for the channels specified (or all if channel is missing)
+                const shouldShowEmail = emailCraft.length > 0 && !emailHandled && (channelMissing || hasEmail)
+                const shouldShowLinkedin = linkedinCraft.length > 0 && !linkedinHandled && (channelMissing || hasLinkedin)
+                const shouldShowWhatsapp = whatsappCraft.length > 0 && !whatsappHandled && (channelMissing || hasWhatsapp)
+
+                console.log('Crafted Message Debug:', {
+                  candidateName: selectedConv.candidateName,
+                  channelRaw,
+                  channelLower,
+                  emailCraft: emailCraft.substring(0, 50),
+                  linkedinCraft: linkedinCraft.substring(0, 50),
+                  whatsappCraft: whatsappCraft.substring(0, 50),
+                  hasEmail,
+                  hasLinkedin,
+                  hasWhatsapp,
+                  channelMissing,
+                  shouldShowEmail,
+                  shouldShowLinkedin,
+                  shouldShowWhatsapp,
+                  emailHandled,
+                  linkedinHandled,
+                  whatsappHandled
+                })
+
+                const blocks: React.ReactElement[] = []
+
+                if (shouldShowEmail) {
+                  blocks.push(
+                    <div key="cm-email" className="flex justify-end">
+                      <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-blue-50 text-blue-900 shadow-sm border border-blue-200">
+                        <div className="text-[10px] mb-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-blue-800 text-base">Crafted Email</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white text-amber-700 border border-amber-300 font-medium">Email</span>
+                          </div>
+                          <span className="ml-2 text-blue-500">{formatTimestamp(new Date().toISOString())}</span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap break-words mb-3 bg-white/70 p-3 rounded border border-blue-200">{linkifyText(emailCraft)}</div>
+                        <div className="flex gap-2 justify-end">
+                           <button title="Approve" aria-label="Approve crafted email" onClick={async () => {
+                             try {
+                               if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                               await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'accept', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'email' }) })
+                             } catch (e) { console.error('Failed to trigger message sender (accept-email)', e) }
+                             setNewMessage(emailCraft)
+                             appendRecruiterMessage(emailCraft, 'mail')
+                             setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), email: 'approved' } }))
+                           }} className="p-2 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                          <button title="Reject" aria-label="Reject crafted email" onClick={async () => {
+                            try {
+                              if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                              await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'reject', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'email' }) })
+                            } catch (e) { console.error('Failed to trigger message sender (reject-email)', e) }
+                            setNewMessage('')
+                            setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), email: 'rejected' } }))
+                          }} className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                if (shouldShowLinkedin) {
+                  blocks.push(
+                    <div key="cm-linkedin" className="flex justify-end">
+                      <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-blue-50 text-blue-900 shadow-sm border border-blue-200">
+                        <div className="text-[10px] mb-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-blue-800 text-base">Crafted LinkedIn</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white text-blue-600 border border-blue-300 font-medium">LinkedIn</span>
+                          </div>
+                          <span className="ml-2 text-blue-500">{formatTimestamp(new Date().toISOString())}</span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap break-words mb-3 bg-white/70 p-3 rounded border border-blue-200">{linkifyText(linkedinCraft)}</div>
+                        <div className="flex gap-2 justify-end">
+                           <button title="Approve" aria-label="Approve crafted linkedin" onClick={async () => {
+                             try {
+                               if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                               await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'accept', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'linkedin' }) })
+                             } catch (e) { console.error('Failed to trigger message sender (accept-linkedin)', e) }
+                             setNewMessage(linkedinCraft)
+                             appendRecruiterMessage(linkedinCraft, 'linkedin')
+                             setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), linkedin: 'approved' } }))
+                           }} className="p-2 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                          <button title="Reject" aria-label="Reject crafted linkedin" onClick={async () => {
+                            try {
+                              if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                              await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'reject', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'linkedin' }) })
+                            } catch (e) { console.error('Failed to trigger message sender (reject-linkedin)', e) }
+                            setNewMessage('')
+                            setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), linkedin: 'rejected' } }))
+                          }} className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                if (shouldShowWhatsapp) {
+                  blocks.push(
+                    <div key="cm-whatsapp" className="flex justify-end">
+                      <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-lg bg-blue-50 text-blue-900 shadow-sm border border-blue-200">
+                        <div className="text-[10px] mb-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-blue-800 text-base">Crafted WhatsApp</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-white text-green-600 border border-green-300 font-medium">WhatsApp</span>
+                          </div>
+                          <span className="ml-2 text-blue-500">{formatTimestamp(new Date().toISOString())}</span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap break-words mb-3 bg-white/70 p-3 rounded border border-blue-200">{linkifyText(whatsappCraft)}</div>
+                        <div className="flex gap-2 justify-end">
+                           <button title="Approve" aria-label="Approve crafted whatsapp" onClick={async () => {
+                             try {
+                               if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                               await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'accept', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'whatsapp' }) })
+                             } catch (e) { console.error('Failed to trigger message sender (accept-whatsapp)', e) }
+                             setNewMessage(whatsappCraft)
+                             appendRecruiterMessage(whatsappCraft, 'whatsapp')
+                             setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), whatsapp: 'approved' } }))
+                           }} className="p-2 rounded-md bg-green-100 text-green-700 hover:bg-green-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                          <button title="Reject" aria-label="Reject crafted whatsapp" onClick={async () => {
+                            try {
+                              if (!linkedinUrl) { alert('LinkedIn URL not available for this candidate'); return }
+                              await fetch('/api/communications/message-sender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkedinUrl, sending_status: 'reject', candidateId: selectedConv.candidateId, candidateName: selectedConv.candidateName, channel: 'whatsapp' }) })
+                            } catch (e) { console.error('Failed to trigger message sender (reject-whatsapp)', e) }
+                            setNewMessage('')
+                            setHandledCrafted(prev => ({ ...prev, [selectedConv.candidateId]: { ...(prev[selectedConv.candidateId] || {}), whatsapp: 'rejected' } }))
+                          }} className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 transition-colors shadow-sm flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                if (blocks.length === 0) return null
+                return <>{blocks}</>
+              })()}
             </div>
 
             {/* Message Input */}

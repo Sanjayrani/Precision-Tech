@@ -97,6 +97,8 @@ export async function GET(request: NextRequest) {
     // Final safety: do not exceed reported total
     const candidatesRecords = allRecords.slice(0, totalCountAll)
     console.log('Aggregated WEXA records total:', candidatesRecords.length)
+    console.log('First 3 WEXA record IDs:', candidatesRecords.slice(0, 3).map((r: any) => r._id || r.id))
+    console.log('Last 3 WEXA record IDs:', candidatesRecords.slice(-3).map((r: any) => r._id || r.id))
 
     // Optionally fetch jobs to enrich candidate's job info by job_id
     const jobMap = new Map<string, { title: string; companyName: string }>()
@@ -177,6 +179,10 @@ export async function GET(request: NextRequest) {
       experience: String(rec.experience || rec.Experience || rec.experienceLevel || ""),
       certifications: String(rec.certifications || rec.Certifications || rec.certificates || ""),
       projects: String(rec.projects || rec.Projects || rec.projectPortfolio || ""),
+      craftedMessage: String(rec.crafted_message || rec.Crafted_Message || rec.craftedMessage || ""),
+      craftedLinkedinMessage: String(rec.crafted_linkedin_message || rec.Crafted_LinkedIn_Message || rec.craftedLinkedinMessage || rec.craftedLinkedInMessage || ""),
+      craftedWhatsappMessage: String(rec.crafted_whatsapp_message || rec.Crafted_WhatsApp_Message || rec.craftedWhatsappMessage || rec.craftedWhatsAppMessage || ""),
+      messageChannel: String(rec.message_channel || rec.Message_Channel || rec.messageChannel || ""),
       miscellaneousInformation: String(rec.miscellaneous_information || rec.Miscellaneous_Information || rec.additionalInfo || ""),
       candidateScore: rec.candidate_score || rec.Candidate_Score || rec.score || 0,
       scoreDescription: String(rec.score_description || rec.Score_Description || rec.scoreDetails || ""),
@@ -322,6 +328,8 @@ export async function GET(request: NextRequest) {
       : mappedCandidates
 
     // Sort candidates: those with non-empty overall_messages first, then remaining candidates
+    // Add a small random component to ensure different ordering each time
+    const randomSeed = Math.random() * 0.0001
     const sortedCandidates = [...filteredCandidates].sort((a, b) => {
       // Check if overall_messages has any content (array with items OR non-empty string)
       const aHasMessages = a.overallMessages && (
@@ -333,33 +341,11 @@ export async function GET(request: NextRequest) {
         (typeof b.overallMessages === 'string' && b.overallMessages.trim() !== '')
       )
       
-      // Debug logging to see what's happening
-      console.log('Sorting candidates:', {
-        a: { 
-          name: a.candidateName, 
-          messages: a.overallMessages, 
-          type: typeof a.overallMessages,
-          isArray: Array.isArray(a.overallMessages), 
-          length: Array.isArray(a.overallMessages) ? a.overallMessages.length : (typeof a.overallMessages === 'string' ? a.overallMessages.length : 'N/A'),
-          hasMessages: aHasMessages 
-        },
-        b: { 
-          name: b.candidateName, 
-          messages: b.overallMessages, 
-          type: typeof b.overallMessages,
-          isArray: Array.isArray(b.overallMessages), 
-          length: Array.isArray(b.overallMessages) ? b.overallMessages.length : (typeof b.overallMessages === 'string' ? b.overallMessages.length : 'N/A'),
-          hasMessages: bHasMessages 
-        }
-      })
-      
       // First sort by message status (those with messages first)
       if (aHasMessages && !bHasMessages) {
-        console.log(`${a.candidateName} (HAS messages) should come before ${b.candidateName} (NO messages)`)
         return -1
       }
       if (!aHasMessages && bHasMessages) {
-        console.log(`${b.candidateName} (HAS messages) should come before ${a.candidateName} (NO messages)`)
         return 1
       }
       
@@ -368,7 +354,14 @@ export async function GET(request: NextRequest) {
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
       const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
       const bt = bd && !isNaN(bd.getTime()) ? bd.getTime() : 0
-      return bt - at
+      
+      // If dates are the same, sort by ID to ensure consistent ordering
+      if (at === bt) {
+        return (a.id || '').localeCompare(b.id || '')
+      }
+      
+      // Add tiny random component to break ties and ensure different ordering
+      return (bt - at) + randomSeed
     })
 
     // Slice for requested page/limit on our side
@@ -376,20 +369,20 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const pageCandidates = sortedCandidates.slice(start, end)
 
-    // Use the correct total count from filtered results
-    const totalCount = filteredCandidates.length
+    // Use the correct total count from sorted results (same as filtered but sorted)
+    const totalCount = sortedCandidates.length
     
-    console.log('Returning to frontend:', { 
-      candidatesOnPage: pageCandidates.length, 
-      totalCount,
-      page,
-      limit,
-      slice: `${start}-${end}`,
-      totalFromAPI: candidatesRecords.length,
-      searchQuery,
-      withMessages: filteredCandidates.filter((c: { hasMessages: boolean }) => c.hasMessages).length,
-      withoutMessages: filteredCandidates.filter((c: { hasMessages: boolean }) => !c.hasMessages).length
-    })
+    console.log('=== PAGINATION DEBUG ===')
+    console.log('Request params:', { page, limit, searchQuery })
+    console.log('Raw WEXA data count:', candidatesRecords.length)
+    console.log('After filtering:', filteredCandidates.length)
+    console.log('After sorting:', sortedCandidates.length)
+    console.log('Slice calculation:', { start, end, slice: `${start}-${end}` })
+    console.log('Page candidates count:', pageCandidates.length)
+    console.log('First 3 candidate IDs on this page:', pageCandidates.slice(0, 3).map(c => c.id))
+    console.log('Last 3 candidate IDs on this page:', pageCandidates.slice(-3).map(c => c.id))
+    console.log('Total pages calculated:', Math.ceil(sortedCandidates.length / limit))
+    console.log('=== END PAGINATION DEBUG ===')
     
     return NextResponse.json({
       success: true,
