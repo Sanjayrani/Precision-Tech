@@ -74,18 +74,42 @@ function CandidatesPageContent() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [openInEdit, setOpenInEdit] = useState(false)
   const [showSourcingProgress, setShowSourcingProgress] = useState(false)
   const [showSourcingNotification, setShowSourcingNotification] = useState(false)
 
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (search !== (searchParams.get('search') || '')) {
+        setPage(1)
+        const params = new URLSearchParams(Array.from(searchParams.entries()))
+        params.set('page', '1')
+        if (search) params.set('search', search)
+        else params.delete('search')
+        if (statusFilter) params.set('status', statusFilter)
+        else params.delete('status')
+        router.replace(`?${params.toString()}`)
+        fetchCandidates(1, search, statusFilter)
+      }
+    }, 400)
+
+    return () => clearTimeout(timeoutId)
+  }, [search, statusFilter, router, searchParams])
+
   useEffect(() => {
     // Initialize from URL
     const initialPage = parseInt(searchParams.get('page') || '1', 10)
+    const initialSearch = searchParams.get('search') || ''
+    const initialStatus = searchParams.get('status') || ''
     const safePage = Number.isNaN(initialPage) || initialPage < 1 ? 1 : initialPage
     setPage(safePage)
-    fetchCandidates(safePage)
+    setSearch(initialSearch)
+    setStatusFilter(initialStatus)
+    fetchCandidates(safePage, initialSearch, initialStatus)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -115,28 +139,24 @@ function CandidatesPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
-  const fetchCandidates = async (p: number) => {
+  const fetchCandidates = async (p: number, searchQuery?: string, statusQuery?: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=10`)
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+      const statusParam = statusQuery ? `&status=${encodeURIComponent(statusQuery)}` : ''
+      const response = await fetch(`/api/candidates-candidatestable?page=${p}&limit=10${searchParam}${statusParam}`)
       if (response.ok) {
         const data = await response.json()
         console.log('API Response:', { 
           page: p, 
           candidatesCount: data.candidates?.length, 
           totalCount: data.totalCount,
-          limit: data.limit 
+          limit: data.limit,
+          searchQuery,
+          statusQuery
         })
-        // Ensure we only show 10 candidates per page, even if API returns more
-        const candidates = data.candidates || []
-        // Sort latest to oldest by createdAt
-        const sorted = [...candidates].sort((a: Candidate, b: Candidate) => {
-          const at = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          return bt - at
-        })
-        const limitedCandidates = sorted.slice(0, 10)
-        setCandidates(limitedCandidates)
+        setCandidates(data.candidates || [])
+        setTotalCount(data.totalCount || 0)
         // Use server-reported totalCount and our limit to compute total pages
         const serverLimit = data.limit || 10
         const total = data.totalCount || 0
@@ -163,14 +183,6 @@ function CandidatesPageContent() {
   const paginatedCandidates = candidates
   const totalFilteredPages = totalPages
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    setPage(1)
-    const params = new URLSearchParams(Array.from(searchParams.entries()))
-    params.set('page', '1')
-    router.replace(`?${params.toString()}`)
-    fetchCandidates(1)
-  }
 
   const handleCandidateClick = (candidate: Candidate) => {
     setSelectedCandidate(candidate)
@@ -214,7 +226,7 @@ function CandidatesPageContent() {
         setSelectedCandidate(null)
         setOpenInEdit(false)
         // Refresh to ensure latest data
-        fetchCandidates(page)
+        fetchCandidates(page, search, statusFilter)
       } else {
         const errorText = await response.text()
         console.error('candidate-update failed:', errorText)
@@ -232,13 +244,13 @@ function CandidatesPageContent() {
   const handleSourcingComplete = () => {
     setShowSourcingProgress(false)
     // Refresh candidates list to show new candidates
-    fetchCandidates(page)
+    fetchCandidates(page, search, statusFilter)
   }
 
   const handleNotificationComplete = () => {
     setShowSourcingNotification(false)
     // Refresh candidates list to show new candidates
-    fetchCandidates(page)
+    fetchCandidates(page, search, statusFilter)
   }
 
   const handleNotificationDismiss = () => {
@@ -344,19 +356,19 @@ function CandidatesPageContent() {
         
         {/* Filters */}
         <div className="mb-6 space-y-4">
-          <form onSubmit={handleSearch} className="flex gap-4">
+          <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search candidates by name, email, or skills..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <select
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
+              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -366,14 +378,16 @@ function CandidatesPageContent() {
               <option value="Selected">Selected</option>
               <option value="Rejected">Rejected</option>
             </select>
-            <button
-              type="submit"
-              className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"
-            >
-              Search
-            </button>
-          </form>
+          </div>
         </div>
+
+        {/* Results Count */}
+        {!loading && (search || statusFilter) && (
+          <div className="mb-4 text-sm text-gray-600">
+            {search ? `Found ${totalCount} candidates matching "${search}"` : `Showing ${totalCount} candidates`}
+            {statusFilter && ` with status "${statusFilter}"`}
+          </div>
+        )}
 
         {/* Candidates List */}
         {loading ? (
@@ -555,7 +569,7 @@ function CandidatesPageContent() {
               <div className="mt-6 flex justify-center">
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                   <button
-                    onClick={() => { const next = Math.max(1, page - 1); setPage(next); fetchCandidates(next) }}
+                    onClick={() => { const next = Math.max(1, page - 1); setPage(next); fetchCandidates(next, search, statusFilter) }}
                     disabled={page === 1}
                     className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
@@ -571,7 +585,7 @@ function CandidatesPageContent() {
                     return pages.map((pageNum) => (
                       <button
                         key={pageNum}
-                        onClick={() => { setPage(pageNum); fetchCandidates(pageNum) }}
+                        onClick={() => { setPage(pageNum); fetchCandidates(pageNum, search, statusFilter) }}
                         className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                           page === pageNum
                             ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
@@ -584,7 +598,7 @@ function CandidatesPageContent() {
                   })()}
 
                   <button
-                    onClick={() => { const next = Math.min(totalFilteredPages, page + 1); setPage(next); fetchCandidates(next) }}
+                    onClick={() => { const next = Math.min(totalFilteredPages, page + 1); setPage(next); fetchCandidates(next, search, statusFilter) }}
                     disabled={page === totalFilteredPages}
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                   >
@@ -597,8 +611,13 @@ function CandidatesPageContent() {
             {paginatedCandidates.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-500">
-                  {search || statusFilter ? 'No candidates found matching your criteria.' : 'No candidates added yet.'}
+                  {search || statusFilter ? `No candidates found matching your criteria.` : 'No candidates added yet.'}
                 </div>
+                {search && (
+                  <div className="text-sm text-gray-400 mt-2">
+                    Searched for: &quot;{search}&quot;
+                  </div>
+                )}
                 <Link
                   href="/candidates/new"
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"

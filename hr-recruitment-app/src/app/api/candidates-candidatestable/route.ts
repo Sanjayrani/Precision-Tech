@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const pageParam = parseInt(searchParams.get('page') || '1', 10)
     const limitParam = parseInt(searchParams.get('limit') || '10', 10)
+    const searchQuery = searchParams.get('search') || ''
     const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
     const limit = Number.isNaN(limitParam) || limitParam < 1 ? 10 : Math.min(limitParam, 100)
     const projectId = process.env.NEXT_PUBLIC_PROJECT_ID
@@ -249,8 +250,30 @@ export async function GET(request: NextRequest) {
       })()
     })) || []
 
+    // Apply search filter if search query is provided
+    const filteredCandidates = searchQuery
+      ? mappedCandidates.filter((candidate: {
+          candidateName?: string
+          email?: string
+          skills?: string
+          currentJobTitle?: string
+          currentEmployer?: string
+          candidateLocation?: string
+        }) => {
+          const query = searchQuery.toLowerCase()
+          return (
+            (candidate.candidateName?.toLowerCase() || '').includes(query) ||
+            (candidate.email?.toLowerCase() || '').includes(query) ||
+            (candidate.skills?.toLowerCase() || '').includes(query) ||
+            (candidate.currentJobTitle?.toLowerCase() || '').includes(query) ||
+            (candidate.currentEmployer?.toLowerCase() || '').includes(query) ||
+            (candidate.candidateLocation?.toLowerCase() || '').includes(query)
+          )
+        })
+      : mappedCandidates
+
     // Sort latest to oldest using createdAt when available, otherwise stable fallback
-    const sortedCandidates = [...mappedCandidates].sort((a, b) => {
+    const sortedCandidates = [...filteredCandidates].sort((a, b) => {
       const ad = a.createdAt ? new Date(String(a.createdAt)) : null as unknown as Date | null
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
       const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
@@ -263,8 +286,8 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const pageCandidates = sortedCandidates.slice(start, end)
 
-    // Use the correct total count from WEXA API
-    const totalCount = totalCountAll || mappedCandidates.length
+    // Use the filtered count for search results, otherwise use the total from WEXA API
+    const totalCount = searchQuery ? filteredCandidates.length : (totalCountAll || mappedCandidates.length)
     
     console.log('Returning to frontend:', { 
       candidatesOnPage: pageCandidates.length, 
@@ -280,7 +303,9 @@ export async function GET(request: NextRequest) {
       totalCount,
       page,
       limit,
-      message: "Candidates fetched successfully from Wexa table"
+      message: searchQuery 
+        ? `Found ${totalCount} candidates matching "${searchQuery}"` 
+        : "Candidates fetched successfully from Wexa table"
     })
 
   } catch (error) {

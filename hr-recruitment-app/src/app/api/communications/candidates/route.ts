@@ -295,7 +295,13 @@ export async function GET(request: NextRequest) {
     // Sort latest to oldest using createdAt when available, otherwise stable fallback
     // Apply search across all candidates if provided
     const filteredCandidates = searchQuery
-      ? mappedCandidates.filter((c: any) => {
+      ? mappedCandidates.filter((c: {
+          candidateName?: string
+          email?: string
+          phoneNumber?: string
+          currentJobTitle?: string
+          currentEmployer?: string
+        }) => {
           const q = searchQuery.toLowerCase()
           return (
             (c.candidateName?.toLowerCase() || '').includes(q) ||
@@ -307,7 +313,49 @@ export async function GET(request: NextRequest) {
         })
       : mappedCandidates
 
+    // Sort candidates: those with non-empty overall_messages first, then remaining candidates
     const sortedCandidates = [...filteredCandidates].sort((a, b) => {
+      // Check if overall_messages has any content (array with items OR non-empty string)
+      const aHasMessages = a.overallMessages && (
+        (Array.isArray(a.overallMessages) && a.overallMessages.length > 0) ||
+        (typeof a.overallMessages === 'string' && a.overallMessages.trim() !== '')
+      )
+      const bHasMessages = b.overallMessages && (
+        (Array.isArray(b.overallMessages) && b.overallMessages.length > 0) ||
+        (typeof b.overallMessages === 'string' && b.overallMessages.trim() !== '')
+      )
+      
+      // Debug logging to see what's happening
+      console.log('Sorting candidates:', {
+        a: { 
+          name: a.candidateName, 
+          messages: a.overallMessages, 
+          type: typeof a.overallMessages,
+          isArray: Array.isArray(a.overallMessages), 
+          length: Array.isArray(a.overallMessages) ? a.overallMessages.length : (typeof a.overallMessages === 'string' ? a.overallMessages.length : 'N/A'),
+          hasMessages: aHasMessages 
+        },
+        b: { 
+          name: b.candidateName, 
+          messages: b.overallMessages, 
+          type: typeof b.overallMessages,
+          isArray: Array.isArray(b.overallMessages), 
+          length: Array.isArray(b.overallMessages) ? b.overallMessages.length : (typeof b.overallMessages === 'string' ? b.overallMessages.length : 'N/A'),
+          hasMessages: bHasMessages 
+        }
+      })
+      
+      // First sort by message status (those with messages first)
+      if (aHasMessages && !bHasMessages) {
+        console.log(`${a.candidateName} (HAS messages) should come before ${b.candidateName} (NO messages)`)
+        return -1
+      }
+      if (!aHasMessages && bHasMessages) {
+        console.log(`${b.candidateName} (HAS messages) should come before ${a.candidateName} (NO messages)`)
+        return 1
+      }
+      
+      // Then sort by creation date (latest first)
       const ad = a.createdAt ? new Date(String(a.createdAt)) : null as unknown as Date | null
       const bd = b.createdAt ? new Date(String(b.createdAt)) : null as unknown as Date | null
       const at = ad && !isNaN(ad.getTime()) ? ad.getTime() : 0
