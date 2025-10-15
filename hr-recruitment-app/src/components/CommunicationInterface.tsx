@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { htmlToPlainText } from '@/lib/formatHtml'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Phone, MoreHorizontal, Send, User, Building2, MessageSquare } from 'lucide-react'
 
@@ -827,9 +828,13 @@ type OverallNestedBranch = {
                 const candRec = cand as unknown as Record<string, string>
                 const channelRaw = candRec["messageChannel"] || candRec["message_channel"] || candRec["Message_Channel"] || ''
                 const channelLower = String(channelRaw).toLowerCase()
-                const emailCraft = String(candRec["craftedMessage"] || candRec["crafted_message"] || candRec["Crafted_Message"] || '').trim()
-                const linkedinCraft = String(candRec["craftedLinkedinMessage"] || candRec["crafted_linkedin_message"] || candRec["Crafted_LinkedIn_Message"] || candRec["craftedLinkedInMessage"] || '').trim()
-                const whatsappCraft = String(candRec["craftedWhatsappMessage"] || candRec["crafted_whatsapp_message"] || candRec["Crafted_WhatsApp_Message"] || candRec["craftedWhatsAppMessage"] || '').trim()
+                 const emailCraftRaw = String(candRec["craftedMessage"] || candRec["crafted_message"] || candRec["Crafted_Message"] || '').trim()
+                 const linkedinCraftRaw = String(candRec["craftedLinkedinMessage"] || candRec["crafted_linkedin_message"] || candRec["Crafted_LinkedIn_Message"] || candRec["craftedLinkedInMessage"] || '').trim()
+                 const whatsappCraftRaw = String(candRec["craftedWhatsappMessage"] || candRec["crafted_whatsapp_message"] || candRec["Crafted_WhatsApp_Message"] || candRec["craftedWhatsAppMessage"] || '').trim()
+
+                 const emailCraft = emailCraftRaw ? htmlToPlainText(emailCraftRaw) : ''
+                 const linkedinCraft = linkedinCraftRaw ? htmlToPlainText(linkedinCraftRaw) : ''
+                 const whatsappCraft = whatsappCraftRaw ? htmlToPlainText(whatsappCraftRaw) : ''
                 const liUrlRaw = candRec["linkedinUrl"] || candRec["linkedin"] || candRec["LinkedIn"] || candRec["linkedin_url"] || candRec["linkedinURL"] || ''
                 const linkedinUrl = liUrlRaw ? (String(liUrlRaw).startsWith('http') ? String(liUrlRaw) : `https://${String(liUrlRaw)}`) : ''
 
